@@ -12,17 +12,14 @@ import { login } from '@/api/auth';
 import { useAuthStore } from './useAuthStore';
 import { loginSchema } from '@/lib/validation';
 import type { AuthLoginBody } from '@/types';
+import { api } from '@/api/axios'; // NEW
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<AuthLoginBody>({
+  const { register, handleSubmit, formState: { errors } } = useForm<AuthLoginBody>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -30,8 +27,21 @@ export const LoginPage = () => {
     setLoading(true);
     try {
       const response = await login(data);
+
+      // === CRITICAL: persist auth the way axios expects ===
+      localStorage.setItem('auth_token', response.token);         // NEW
+      localStorage.setItem('tenant_id', response.tenant.id);      // NEW
+      if (response.tenant.slug) {
+        localStorage.setItem('tenant_slug', response.tenant.slug); // optional
+      }
+
+      // set defaults immediately so the current tab uses them
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`; // NEW
+      api.defaults.headers.common['X-Tenant-ID'] = response.tenant.id;            // NEW
+
+      // keep your existing store if you use it in UI
       setAuth(response.user, response.tenant, response.token);
-      
+
       if (response.user.must_change_password) {
         toast({
           title: 'Password Change Required',
@@ -43,13 +53,13 @@ export const LoginPage = () => {
           title: 'Welcome back!',
           description: `Logged in as ${response.user.first_name} ${response.user.last_name}`,
         });
-        navigate('/');
+        navigate('/'); // or '/app'
       }
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.response?.data?.message || 'Invalid credentials',
+        description: error?.response?.data?.message || 'Invalid credentials',
       });
     } finally {
       setLoading(false);
@@ -74,44 +84,19 @@ export const LoginPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="tenant_slug">Tenant</Label>
-              <Input
-                id="tenant_slug"
-                placeholder="company-slug"
-                {...register('tenant_slug')}
-                disabled={loading}
-              />
-              {errors.tenant_slug && (
-                <p className="text-sm text-destructive">{errors.tenant_slug.message}</p>
-              )}
+              <Input id="tenant_slug" placeholder="company-slug" {...register('tenant_slug')} disabled={loading} />
+              {errors.tenant_slug && <p className="text-sm text-destructive">{errors.tenant_slug.message}</p>}
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
-                {...register('email')}
-                disabled={loading}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
-              )}
+              <Input id="email" type="email" placeholder="user@example.com" {...register('email')} disabled={loading} />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register('password')}
-                disabled={loading}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
-              )}
+              <Input id="password" type="password" {...register('password')} disabled={loading} />
+              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In

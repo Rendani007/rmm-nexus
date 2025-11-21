@@ -1,20 +1,30 @@
+// src/api/items.ts
 import { api } from './axios';
 import type { InventoryItem, StockSummary } from '@/types';
 
-export const listItems = () =>
-  api.get<InventoryItem[]>('/inventory/items').then((r) => r.data);
+const unwrapArray = (payload: any): InventoryItem[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data; // <— your case
+  return [];
+};
 
-export const createItem = (body: Partial<InventoryItem>) =>
-  api.post<InventoryItem>('/inventory/items', body).then((r) => r.data);
+export const listItems = async (): Promise<InventoryItem[]> => {
+  const res = await api.get('/inventory/items');
+  return unwrapArray(res.data);
+};
 
-export const updateItem = (id: string, body: Partial<InventoryItem>) =>
-  api.put<InventoryItem>(`/inventory/items/${id}`, body).then((r) => r.data);
+export const createItem  = async (body: Partial<InventoryItem>) =>
+  (await api.post('/inventory/items', body)).data;
 
-export const deleteItem = (id: string) =>
-  api.delete(`/inventory/items/${id}`).then((r) => r.data);
+export const updateItem  = async (id: string, body: Partial<InventoryItem>) =>
+  (await api.put(`/inventory/items/${id}`, body)).data;
 
-export const showItem = (id: string) =>
-  api.get<InventoryItem>(`/inventory/items/${id}`).then((r) => r.data);
+export const deleteItem  = async (id: string) =>
+  (await api.delete(`/inventory/items/${id}`)).data;
 
-export const stockForItem = (id: string) =>
-  api.get<StockSummary>(`/inventory/items/${id}/stock`).then((r) => r.data);
+export const showItem    = async (id: string) =>
+  (await api.get(`/inventory/items/${id}`)).data;
+
+export const stockForItem = async (id: string): Promise<StockSummary> =>
+  (await api.get(`/inventory/items/${id}/stock`)).data;

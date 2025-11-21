@@ -26,6 +26,18 @@ import { listLocations, deleteLocation } from '@/api/locations';
 import { LocationFormDialog } from './LocationFormDialog';
 import type { InventoryLocation } from '@/types';
 
+/** Why: API often returns wrapped data; normalize to a plain array to avoid .map crashes */
+function normalizeLocations(payload: unknown): InventoryLocation[] {
+  if (Array.isArray(payload)) return payload as InventoryLocation[];
+  const o = (payload ?? null) as Record<string, unknown> | null;
+  if (!o) return [];
+  if (Array.isArray(o.items)) return o.items as InventoryLocation[];
+  if (Array.isArray(o.data)) return o.data as InventoryLocation[];
+  if (Array.isArray((o as any).results)) return (o as any).results as InventoryLocation[];
+  if (Array.isArray((o as any).rows)) return (o as any).rows as InventoryLocation[];
+  return [];
+}
+
 export const LocationsListPage = () => {
   const [locations, setLocations] = useState<InventoryLocation[]>([]);
   const [filteredLocations, setFilteredLocations] = useState<InventoryLocation[]>([]);
@@ -41,14 +53,20 @@ export const LocationsListPage = () => {
     setLoading(true);
     try {
       const data = await listLocations();
-      setLocations(data);
-      setFilteredLocations(data);
+      const normalized = normalizeLocations(data);
+      setLocations(normalized);
+      setFilteredLocations(normalized);
+      if (!Array.isArray(data)) {
+        console.debug('listLocations() returned a non-array; normalized to array.');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Failed to load locations',
-        description: error.response?.data?.message || 'An error occurred',
+        description: error?.response?.data?.message || 'An error occurred',
       });
+      setLocations([]);
+      setFilteredLocations([]);
     } finally {
       setLoading(false);
     }
@@ -59,11 +77,17 @@ export const LocationsListPage = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = locations.filter(
-      (location) =>
-        location.name.toLowerCase().includes(search.toLowerCase()) ||
-        location.code.toLowerCase().includes(search.toLowerCase())
-    );
+    if (!Array.isArray(locations)) return;
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      setFilteredLocations(locations);
+      return;
+    }
+    const filtered = locations.filter((location) => {
+      const name = location.name?.toLowerCase() || '';
+      const code = location.code?.toLowerCase() || '';
+      return name.includes(q) || code.includes(q);
+    });
     setFilteredLocations(filtered);
   }, [search, locations]);
 
@@ -76,14 +100,14 @@ export const LocationsListPage = () => {
         title: 'Location deleted',
         description: `${locationToDelete.name} has been deleted.`,
       });
-      loadLocations();
+      await loadLocations();
       setDeleteDialogOpen(false);
       setLocationToDelete(null);
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Failed to delete location',
-        description: error.response?.data?.message || 'An error occurred',
+        description: error?.response?.data?.message || 'An error occurred',
       });
     } finally {
       setDeleting(false);
@@ -98,10 +122,10 @@ export const LocationsListPage = () => {
   const handleFormClose = (reload?: boolean) => {
     setFormOpen(false);
     setSelectedLocation(null);
-    if (reload) {
-      loadLocations();
-    }
+    if (reload) loadLocations();
   };
+
+  const isArray = Array.isArray(filteredLocations);
 
   return (
     <Layout>
@@ -109,9 +133,7 @@ export const LocationsListPage = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
-            <p className="text-muted-foreground">
-              Manage your storage locations
-            </p>
+            <p className="text-muted-foreground">Manage your storage locations</p>
           </div>
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -146,6 +168,12 @@ export const LocationsListPage = () => {
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : !isArray ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    Unexpected data shape received. Please try again.
                   </TableCell>
                 </TableRow>
               ) : filteredLocations.length === 0 ? (
