@@ -27,6 +27,20 @@ import { ItemFormDialog } from './ItemFormDialog';
 import { ItemStockDrawer } from './ItemStockDrawer';
 import type { InventoryItem } from '@/types';
 
+/** Why: listItems() often wraps arrays; normalize to a plain array to avoid .map errors */
+function normalizeItems(payload: unknown): InventoryItem[] {
+  if (Array.isArray(payload)) return payload as InventoryItem[];
+  const maybeObj = payload as Record<string, unknown> | null;
+  if (maybeObj && Array.isArray(maybeObj.items)) return maybeObj.items as InventoryItem[];
+  if (maybeObj && Array.isArray(maybeObj.data)) return maybeObj.data as InventoryItem[];
+  if (maybeObj && typeof maybeObj === 'object') {
+    // common paginated shapes
+    if (Array.isArray((maybeObj as any).results)) return (maybeObj as any).results as InventoryItem[];
+    if (Array.isArray((maybeObj as any).rows)) return (maybeObj as any).rows as InventoryItem[];
+  }
+  return [];
+}
+
 export const ItemsListPage = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
@@ -39,34 +53,71 @@ export const ItemsListPage = () => {
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // const loadItems = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const data = await listItems();
+  //     const normalized = normalizeItems(data);
+  //     setItems(normalized);
+  //     setFilteredItems(normalized);
+  //     if (!Array.isArray(data)) {
+  //       // Why: surface unexpected shapes for faster backend alignment
+  //       console.debug('listItems() returned non-array shape; normalized to array.');
+  //     }
+  //   } catch (error: any) {
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Failed to load items',
+  //       description: error?.response?.data?.message || 'An error occurred',
+  //     });
+  //     setItems([]);
+  //     setFilteredItems([]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const loadItems = async () => {
     setLoading(true);
     try {
       const data = await listItems();
-      setItems(data);
-      setFilteredItems(data);
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to load items',
-        description: error.response?.data?.message || 'An error occurred',
-      });
-    } finally {
+      //log exactly what came back
+      console.log('[items] Raw payload from API:', data);
+
+      const normalized = normalizeItems(data);
+
+      //what we end up using
+      console.log('[items] Normalized array:', normalized);
+      setItems(normalized);
+      setFilteredItems(normalized);
+    } catch (error:any) {
+      console.error('[items] load error:', error?.response?.data || error);
+      setItems([]);
+      setFilteredItems([]);
+    }finally{
       setLoading(false);
     }
-  };
-
+  }
   useEffect(() => {
     loadItems();
   }, []);
 
   useEffect(() => {
-    const filtered = items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.sku.toLowerCase().includes(search.toLowerCase()) ||
-        item.category?.toLowerCase().includes(search.toLowerCase())
-    );
+    if (!Array.isArray(items)) return; // defensive
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      setFilteredItems(items);
+      return;
+    }
+    const filtered = items.filter((item) => {
+      const name = item.name?.toLowerCase() || '';
+      const sku = item.sku?.toLowerCase() || '';
+      const category = item.category?.toLowerCase() || '';
+      return (
+        name.includes(q) ||
+        sku.includes(q) ||
+        category.includes(q)
+      );
+    });
     setFilteredItems(filtered);
   }, [search, items]);
 
@@ -79,14 +130,14 @@ export const ItemsListPage = () => {
         title: 'Item deleted',
         description: `${itemToDelete.name} has been deleted.`,
       });
-      loadItems();
+      await loadItems();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Failed to delete item',
-        description: error.response?.data?.message || 'An error occurred',
+        description: error?.response?.data?.message || 'An error occurred',
       });
     } finally {
       setDeleting(false);
@@ -106,10 +157,10 @@ export const ItemsListPage = () => {
   const handleFormClose = (reload?: boolean) => {
     setFormOpen(false);
     setSelectedItem(null);
-    if (reload) {
-      loadItems();
-    }
+    if (reload) loadItems();
   };
+
+  const isArray = Array.isArray(filteredItems);
 
   return (
     <Layout>
@@ -117,9 +168,7 @@ export const ItemsListPage = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Items</h1>
-            <p className="text-muted-foreground">
-              Manage your inventory items
-            </p>
+            <p className="text-muted-foreground">Manage your inventory items</p>
           </div>
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -156,6 +205,12 @@ export const ItemsListPage = () => {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : !isArray ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Unexpected data shape received. Please try again.
                   </TableCell>
                 </TableRow>
               ) : filteredItems.length === 0 ? (

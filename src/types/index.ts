@@ -28,11 +28,11 @@ export interface AuthLoginBody {
 }
 
 export interface AuthLoginResp {
-  message: string;
+  message?: string;        // ← optional
   user: User;
   tenant: Tenant;
   token: string;
-  expires_at: string;
+  expires_at?: string;     // ← optional
 }
 
 export interface InventoryItem {
