@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,9 @@ type ChangePasswordForm = {
 export const ChangePasswordPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -39,10 +42,18 @@ export const ChangePasswordPage = () => {
       });
       navigate('/');
     } catch (error: any) {
+      const mainMessage = error?.response?.data?.message || error?.response?.data?.error || 'An error occurred';
+      let description = mainMessage;
+
+      const validationErrors = error?.response?.data?.errors || error?.response?.data?.details;
+      if (validationErrors) {
+        description = Object.values(validationErrors).flat().join(', ');
+      }
+
       toast({
         variant: 'destructive',
         title: 'Failed to Change Password',
-        description: error.response?.data?.message || 'An error occurred',
+        description: description,
       });
     } finally {
       setLoading(false);
@@ -67,12 +78,28 @@ export const ChangePasswordPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current_password">Current Password</Label>
-              <Input
-                id="current_password"
-                type="password"
-                {...register('current_password')}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="current_password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  {...register('current_password')}
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.current_password && (
                 <p className="text-sm text-destructive">{errors.current_password.message}</p>
               )}
@@ -80,12 +107,28 @@ export const ChangePasswordPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register('password')}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register('password')}
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
@@ -93,12 +136,28 @@ export const ChangePasswordPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password_confirmation">Confirm New Password</Label>
-              <Input
-                id="password_confirmation"
-                type="password"
-                {...register('password_confirmation')}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password_confirmation"
+                  type={showConfirmPassword ? "text" : "password"}
+                  {...register('password_confirmation')}
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.password_confirmation && (
                 <p className="text-sm text-destructive">{errors.password_confirmation.message}</p>
               )}

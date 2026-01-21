@@ -41,3 +41,16 @@ export const registerUser = async (body: any) => {
   const res = await api.post('/auth/register', body);
   return unwrap(res.data);
 };
+
+export const registerBusiness = async (body: any): Promise<AuthLoginResp> => {
+  const res = await api.post('/auth/register-business', body);
+  const d = unwrap<any>(res.data);
+  return {
+    message: d?.message,
+    user: d?.user,
+    tenant: d?.tenant,
+    token: d?.token,
+    expires_at: d?.expires_at,
+  } as AuthLoginResp;
+};
+
