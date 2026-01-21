@@ -87,7 +87,7 @@ export const LocationFormDialog = ({ open, location, onClose }: LocationFormDial
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Location' : 'New Location'}</DialogTitle>
           <DialogDescription>

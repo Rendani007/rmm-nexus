@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AuthLoginBody>({
     resolver: zodResolver(loginSchema),
@@ -26,7 +27,13 @@ export const LoginPage = () => {
   const onSubmit = async (data: AuthLoginBody) => {
     setLoading(true);
     try {
-      const response = await login(data);
+      // Ensure tenant slug is lowercase to match Str::slug() behavior from registration
+      const payload = {
+        ...data,
+        tenant_slug: data.tenant_slug.toLowerCase(),
+      };
+
+      const response = await login(payload);
 
       // === CRITICAL: persist auth the way axios expects ===
       localStorage.setItem('auth_token', response.token);         // NEW
@@ -48,6 +55,9 @@ export const LoginPage = () => {
           description: 'Please change your password before continuing.',
         });
         navigate('/change-password');
+      } else if (response.user.is_super_admin) {
+        toast({ title: 'Welcome Super Admin' });
+        navigate('/admin/dashboard');
       } else {
         toast({
           title: 'Welcome back!',
@@ -56,10 +66,23 @@ export const LoginPage = () => {
         navigate('/'); // or '/app'
       }
     } catch (error: any) {
+      console.error("Login error details:", error); // Debug log
+
+      // Handle both standard Laravel errors { message, errors } and custom AuthController errors { error, details }
+      const mainMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Invalid credentials';
+      let description = mainMessage;
+
+      const validationErrors = error?.response?.data?.errors || error?.response?.data?.details;
+
+      if (validationErrors) {
+        // Flatten errors object into a string
+        description = Object.values(validationErrors).flat().join(', ');
+      }
+
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error?.response?.data?.message || 'Invalid credentials',
+        description: description,
       });
     } finally {
       setLoading(false);
@@ -94,14 +117,42 @@ export const LoginPage = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...register('password')} disabled={loading} />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register('password')}
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
+            <div className="text-center text-sm">
+              Don't have an account?{' '}
+              <Link to="/register" className="underline hover:text-primary">
+                Register your business
+              </Link>
+            </div>
           </form>
+
         </CardContent>
       </Card>
     </div>

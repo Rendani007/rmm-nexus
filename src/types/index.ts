@@ -17,7 +17,9 @@ export interface User {
   email: string;
   job_title?: string;
   department?: string;
+  department_id?: UUID;
   is_tenant_admin: boolean;
+  is_super_admin?: boolean;
   must_change_password?: boolean;
 }
 
@@ -44,6 +46,7 @@ export interface InventoryItem {
   uom: string;
   reorder_level?: number;
   metadata?: Record<string, unknown>;
+  stock_on_hand?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -53,6 +56,8 @@ export interface InventoryLocation {
   tenant_id: UUID;
   code: string;
   name: string;
+  total_items?: number;
+  stock_on_hand?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -92,3 +97,66 @@ export interface StockTransferBody {
   reference?: string;
   note?: string;
 }
+
+export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean' | 'select';
+
+export interface CustomFieldDefinition {
+  id: UUID;
+  tenant_id: UUID;
+  entity_type: string;
+  field_key: string;
+  label: string;
+  type: CustomFieldType;
+  options?: any;
+  sort_order: number;
+  is_system: boolean;
+  is_required: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCustomFieldBody {
+  entity_type: string;
+  label: string;
+  type: CustomFieldType;
+  options?: any;
+  sort_order?: number;
+  is_required?: boolean;
+}
+
+export interface DashboardStats {
+  low_stock_count: number;
+  total_stock_value: number;
+}
+
+export interface Department {
+  id: UUID;
+  name: string;
+  budget_limit: number;
+  currency: string;
+  concurrency_code: string;
+}
+
+export interface StockTransferRequest {
+  id: UUID;
+  from_department_id: UUID;
+  to_department_id: UUID;
+  inventory_item_id: UUID;
+  qty: number;
+  status: 'pending' | 'approved' | 'rejected';
+  notes?: string;
+  created_at: string;
+  item?: InventoryItem;
+  from_department?: Department;
+  to_department?: Department;
+  creator?: User;
+}
+
+export interface CreateTransferRequestBody {
+  inventory_item_id: UUID;
+  to_department_id: UUID;
+  from_location_id: UUID;
+  qty: number;
+  notes?: string;
+}
+

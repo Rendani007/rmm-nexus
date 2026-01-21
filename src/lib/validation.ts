@@ -6,8 +6,8 @@ export const itemSchema = z.object({
   category: z.string().max(100, 'Category must be 100 characters or less').optional().or(z.literal('')),
   uom: z.string().min(1, 'Unit of measure is required').max(20, 'UoM must be 20 characters or less'),
   reorder_level: z.coerce.number().int().min(0, 'Reorder level must be 0 or greater').optional(),
-  metadata: z.string().optional(),
-});
+  metadata: z.record(z.any()).optional(),
+}).passthrough();
 
 export const locationSchema = z.object({
   code: z.string().min(1, 'Code is required').max(50, 'Code must be 50 characters or less'),
@@ -56,3 +56,18 @@ export const changePasswordSchema = z.object({
   message: 'Passwords do not match',
   path: ['password_confirmation'],
 });
+
+export const registerBusinessSchema = z.object({
+  company_name: z.string().min(1, 'Company name is required'),
+  industry: z.string().min(1, 'Industry is required'),
+  admin_first_name: z.string().min(1, 'First name is required'),
+  admin_last_name: z.string().min(1, 'Last name is required'),
+  admin_email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password_confirmation: z.string().min(1, 'Password confirmation is required'),
+  admin_job_title: z.string().optional(),
+}).refine((data) => data.password === data.password_confirmation, {
+  message: 'Passwords do not match',
+  path: ['password_confirmation'],
+});
+

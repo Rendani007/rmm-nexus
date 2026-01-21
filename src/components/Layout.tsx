@@ -8,6 +8,9 @@ import {
   LogOut,
   Building2,
   User,
+  Users,
+  Settings,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -42,9 +45,17 @@ const navItems = [
   { title: 'Stock Movements', url: '/stock', icon: ArrowLeftRight },
 ];
 
+const adminItems = [
+  { title: 'Users', url: '/admin/users', icon: Users },
+  { title: 'Departments', url: '/admin/departments', icon: Building2 },
+  { title: 'Company', url: '/admin/company', icon: Settings },
+];
+
 function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const { user } = useAuthStore();
+  const isAdmin = user?.is_tenant_admin;
 
   return (
     <Sidebar collapsible="icon">
@@ -75,6 +86,53 @@ function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin Section - Only visible to tenant admins */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              {!collapsed && 'Administration'}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className={({ isActive }) =>
+                          isActive ? 'bg-sidebar-accent' : ''
+                        }
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Super Admin Link - Only visible to Super Admins */}
+        {user?.is_super_admin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="text-amber-600 hover:text-amber-700 hover:bg-amber-50">
+                    <NavLink to="/admin/dashboard">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Super Admin</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
