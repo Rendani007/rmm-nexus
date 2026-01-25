@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => ({
   preview: {
     allowedHosts: [".railway.app"],
   },
+
+  // ✅ FIX: allow Railway domain when running `vite preview`
+  preview: {
+    allowedHosts: [".railway.app"],
+  },
+
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
