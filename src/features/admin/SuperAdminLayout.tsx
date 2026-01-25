@@ -36,6 +36,7 @@ import { toast } from '@/hooks/use-toast';
 const adminNavItems = [
     { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
     { title: 'Tenants', url: '/admin/tenants', icon: Building2 },
+    { title: 'Audit Logs', url: '/admin/audit-logs', icon: ShieldCheck },
 ];
 
 function AdminSidebar() {

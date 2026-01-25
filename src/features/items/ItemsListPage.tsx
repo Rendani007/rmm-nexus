@@ -61,6 +61,7 @@ export const ItemsListPage = () => {
   const fetchFieldDefs = async () => {
     try {
       const defs = await getCustomFields('inventory_item');
+      console.log('[ItemsListPage] Custom Fields Loaded:', defs);
       setCustomFields(defs);
     } catch (e) {
       console.error('Failed to load field definitions', e);

@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  preview: {
+    allowedHosts: [".railway.app"],
+  },
 
   // ✅ FIX: allow Railway domain when running `vite preview`
   preview: {

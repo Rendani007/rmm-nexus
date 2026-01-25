@@ -23,6 +23,8 @@ import { SuperAdminGuard } from "./features/auth/SuperAdminGuard";
 import { SuperAdminDashboard } from "./features/admin/SuperAdminDashboard";
 import { TenantsListPage } from "./features/admin/TenantsListPage";
 
+import { AuditLogsPage } from "./features/admin/AuditLogsPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -57,6 +59,7 @@ const App = () => (
           <Route element={<SuperAdminGuard />}>
             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
             <Route path="/admin/tenants" element={<TenantsListPage />} />
+            <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
