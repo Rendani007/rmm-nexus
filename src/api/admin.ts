@@ -15,6 +15,11 @@ export const getAdminStats = async () => {
     return unwrap<AdminStats>(res.data);
 };
 
+export const fetchAuditLogs = async (filters?: any) => {
+    const res = await api.get('/admin/audit-logs', { params: filters });
+    return unwrap<any>(res.data);
+};
+
 export const listTenants = async (page = 1) => {
     const res = await api.get(`/admin/tenants?page=${page}`);
     return unwrap<any>(res.data);
