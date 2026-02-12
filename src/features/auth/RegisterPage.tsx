@@ -45,10 +45,7 @@ export const RegisterPage = () => {
 
             // Persist auth
             localStorage.setItem('auth_token', response.token);
-            localStorage.setItem('tenant_id', response.tenant.id);
-            if (response.tenant.slug) {
-                localStorage.setItem('tenant_slug', response.tenant.slug);
-            }
+            localStorage.setItem('tenant', JSON.stringify(response.tenant)); // FIXED: Store full object
 
             api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
             api.defaults.headers.common['X-Tenant-ID'] = response.tenant.id;
