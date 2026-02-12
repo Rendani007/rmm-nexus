@@ -27,20 +27,26 @@ export const LoginPage = () => {
   const onSubmit = async (data: AuthLoginBody) => {
     setLoading(true);
     try {
-      // Ensure tenant slug is lowercase to match Str::slug() behavior from registration
+      // Auto-slugify the tenant input (e.g. "My Company" -> "my-company")
+      const slug = data.tenant_slug
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')     // Replace spaces with -
+        .replace(/[^\w-]+/g, '')  // Remove all non-word chars
+        .replace(/--+/g, '-')     // Replace multiple - with single -
+        .replace(/^-+/, '')       // Trim - from start of text
+        .replace(/-+$/, '');      // Trim - from end of text
+
       const payload = {
         ...data,
-        tenant_slug: data.tenant_slug.toLowerCase(),
+        tenant_slug: slug,
       };
 
       const response = await login(payload);
 
       // === CRITICAL: persist auth the way axios expects ===
       localStorage.setItem('auth_token', response.token);         // NEW
-      localStorage.setItem('tenant_id', response.tenant.id);      // NEW
-      if (response.tenant.slug) {
-        localStorage.setItem('tenant_slug', response.tenant.slug); // optional
-      }
+      localStorage.setItem('tenant', JSON.stringify(response.tenant)); // FIXED: Store full object
 
       // set defaults immediately so the current tab uses them
       api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`; // NEW

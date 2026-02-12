@@ -84,7 +84,7 @@ export const UsersListPage = () => {
                                 Add User
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+                        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
                             <DialogHeader>
                                 <DialogTitle>Create New User</DialogTitle>
                                 <DialogDescription>
@@ -201,7 +201,7 @@ export const UsersListPage = () => {
 
             {/* Edit User Dialog */}
             <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
-                <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Edit User</DialogTitle>
                         <DialogDescription>

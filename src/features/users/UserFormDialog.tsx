@@ -146,7 +146,8 @@ export const UserFormDialog = ({ user, onSuccess }: UserFormDialogProps) => {
     const watchedIsAdmin = watch('is_tenant_admin');
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="first_name">First Name</Label>
