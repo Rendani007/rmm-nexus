@@ -320,20 +320,40 @@ function StockOutForm({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [selectedItemId, setSelectedItemId] = useState<string>('');
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<StockOutBody>({
     resolver: zodResolver(stockOutSchema),
   });
 
+  const selectedItem = items.find(i => String(i.id) === selectedItemId);
+  const availableStock = selectedItem?.stock_on_hand ?? null;
+
   const onSubmit = async (data: StockOutBody) => {
     setLoading(true);
     setError('');
     try {
-      await stockOut(data);
+      const response = await stockOut(data);
+
+      // Check for low-stock warning from backend
+      const warning = response?.data?.low_stock_warning;
+      if (warning) {
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Low Stock Warning',
+          description: `${warning.message} (${warning.current_stock} remaining, reorder at ${warning.reorder_level})`,
+        });
+      }
+
       toast({ title: 'Stock issued', description: 'Stock out transaction recorded successfully.' });
       reset();
+      setSelectedItemId('');
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'An error occurred';
+      const respData = error?.response?.data;
+      let message = respData?.message || respData?.error || 'An error occurred';
+      if (respData?.available !== undefined) {
+        message = `Insufficient stock: only ${respData.available} available, you requested ${respData.requested}`;
+      }
       setError(message);
       toast({ variant: 'destructive', title: 'Failed to record stock out', description: message });
     } finally {
@@ -358,7 +378,10 @@ function StockOutForm({
             <div className="space-y-2">
               <Label htmlFor="out-item">Item *</Label>
               <Select
-                onValueChange={(value) => setValue('inventory_item_id', value)}
+                onValueChange={(value) => {
+                  setValue('inventory_item_id', value);
+                  setSelectedItemId(value);
+                }}
                 disabled={loadingData || loading || !hasItems}
               >
                 <SelectTrigger id="out-item"><SelectValue placeholder="Select item" /></SelectTrigger>
@@ -371,6 +394,11 @@ function StockOutForm({
                     ))}
                 </SelectContent>
               </Select>
+              {availableStock !== null && (
+                <p className={`text-sm font-medium ${availableStock <= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                  Available: {availableStock} units
+                </p>
+              )}
               {errors.inventory_item_id && <p className="text-sm text-destructive">{errors.inventory_item_id.message}</p>}
             </div>
 
@@ -402,7 +430,7 @@ function StockOutForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="out-reference">Reference</Label>
-              <Input id="out-reference" placeholder="SO-12345" {...register('reference')} disabled={loading} />
+              <Input id="out-reference" placeholder="Auto-generated if empty" {...register('reference')} disabled={loading} />
               {errors.reference && <p className="text-sm text-destructive">{errors.reference.message}</p>}
             </div>
           </div>
@@ -462,9 +490,14 @@ function StockTransferForm({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Transfer Stock</CardTitle>
-        <CardDescription>Move inventory between locations</CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+          <CardTitle>Transfer Stock (Internal)</CardTitle>
+          <CardDescription>Move inventory between locations you own</CardDescription>
+        </div>
+        <Button variant="secondary" onClick={() => window.location.href = '/stock/request'}>
+          Send to Another Department →
+        </Button>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

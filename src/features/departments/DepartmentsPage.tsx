@@ -32,6 +32,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus, MoreHorizontal, Pencil, Trash, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -57,6 +67,7 @@ export const DepartmentsPage = () => {
     const [columnFilters, setColumnFilters] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+    const [departmentToDelete, setDepartmentToDelete] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -83,10 +94,12 @@ export const DepartmentsPage = () => {
         }
     });
 
-    const handleDelete = async (id: string) => {
-        if (confirm('Are you sure you want to delete this department?')) {
-            deleteMutation.mutate(id);
-        }
+    const confirmDelete = async () => {
+        if (!departmentToDelete) return;
+        const id = departmentToDelete;
+        setDepartmentToDelete(null); // Close dialog
+
+        deleteMutation.mutate(id);
     };
 
     const columns: ColumnDef<Department>[] = [
@@ -134,7 +147,7 @@ export const DepartmentsPage = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleDelete(department.id)}
+                                onClick={() => setDepartmentToDelete(department.id)}
                             >
                                 <Trash className="mr-2 h-4 w-4" />
                                 Delete
@@ -285,6 +298,24 @@ export const DepartmentsPage = () => {
                         setIsDialogOpen(false);
                     }}
                 />
+
+                {/* Confirm Delete Dialog */}
+                <AlertDialog open={!!departmentToDelete} onOpenChange={(open) => !open && setDepartmentToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to permanently delete this department? All associated users may lose their assignments, and stock transfers may be disrupted. 
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                Delete Department
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </Layout>
     );

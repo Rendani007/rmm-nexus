@@ -16,13 +16,21 @@ import { UsersListPage } from "./features/users/UsersListPage";
 import { CompanySettingsPage } from "./features/company/CompanySettingsPage";
 import { CustomFieldsSettingsPage } from "./features/settings/CustomFieldsSettingsPage";
 import { DepartmentsPage } from "./features/departments/DepartmentsPage";
+import { TenantAuditLogsPage } from "./features/admin/TenantAuditLogsPage";
+import { MfaSetupPage } from "./features/settings/MfaSetupPage";
+import { IncidentRegisterPage } from "./features/security/IncidentRegisterPage";
+import { RiskRegisterPage } from "./features/security/RiskRegisterPage";
 import { RequestTransfer } from "./pages/RequestTransfer";
+import { BillingPage } from "./features/billing/BillingPage";
+import { PaymentSuccessPage } from "./features/billing/PaymentSuccessPage";
+import { PaymentCancelPage } from "./features/billing/PaymentCancelPage";
+
 import { StockApprovals } from "./pages/StockApprovals";
 import NotFound from "./pages/NotFound";
 import { SuperAdminGuard } from "./features/auth/SuperAdminGuard";
 import { SuperAdminDashboard } from "./features/admin/SuperAdminDashboard";
 import { TenantsListPage } from "./features/admin/TenantsListPage";
-
+import { SystemHealthPage } from "./features/admin/SystemHealthPage";
 import { AuditLogsPage } from "./features/admin/AuditLogsPage";
 
 const queryClient = new QueryClient();
@@ -45,21 +53,35 @@ const App = () => (
             <Route path="/stock/request" element={<RequestTransfer />} />
             <Route path="/stock/approvals" element={<StockApprovals />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/admin/settings/attributes" element={<CustomFieldsSettingsPage />} />
+            <Route path="/admin/settings/security" element={<MfaSetupPage />} />
+            <Route path="/admin/audit-logs" element={<TenantAuditLogsPage />} />
+
 
             {/* Admin Routes */}
             <Route element={<AdminGuard />}>
               <Route path="/admin/users" element={<UsersListPage />} />
               <Route path="/admin/company" element={<CompanySettingsPage />} />
-              <Route path="/admin/settings/attributes" element={<CustomFieldsSettingsPage />} />
               <Route path="/admin/departments" element={<DepartmentsPage />} />
+              <Route path="/admin/security/incidents" element={<IncidentRegisterPage />} />
+              <Route path="/admin/security/risks" element={<RiskRegisterPage />} />
+              {import.meta.env.VITE_ENABLE_BILLING === 'true' && (
+                <>
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/billing/success" element={<PaymentSuccessPage />} />
+                  <Route path="/billing/cancel" element={<PaymentCancelPage />} />
+                </>
+              )}
             </Route>
-          </Route>
 
-          {/* Super Admin Routes */}
-          <Route element={<SuperAdminGuard />}>
-            <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
-            <Route path="/admin/tenants" element={<TenantsListPage />} />
-            <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+            {/* Super Admin Routes */}
+            <Route element={<SuperAdminGuard />}>
+              <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
+              <Route path="/admin/tenants" element={<TenantsListPage />} />
+              <Route path="/admin/global-audit-logs" element={<AuditLogsPage />} />
+              <Route path="/admin/system-health" element={<SystemHealthPage />} />
+            </Route>
+
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

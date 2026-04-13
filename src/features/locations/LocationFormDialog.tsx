@@ -15,8 +15,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { createLocation, updateLocation } from '@/api/locations';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { locationSchema } from '@/lib/validation';
-import type { InventoryLocation } from '@/types';
+import { getDepartments } from '@/api/departments';
+import { useAuthStore } from '@/features/auth/useAuthStore';
+import type { InventoryLocation, Department } from '@/types';
+
 
 interface LocationFormDialogProps {
   open: boolean;
@@ -25,6 +35,7 @@ interface LocationFormDialogProps {
 }
 
 type LocationFormData = {
+  department_id?: string;
   code: string;
   name: string;
 };
@@ -32,29 +43,48 @@ type LocationFormData = {
 export const LocationFormDialog = ({ open, location, onClose }: LocationFormDialogProps) => {
   const [loading, setLoading] = useState(false);
   const isEdit = !!location;
+  const { user } = useAuthStore();
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
+
     formState: { errors },
   } = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
   });
 
   useEffect(() => {
+    if (user?.is_tenant_admin) {
+      getDepartments().then((data: any) => {
+        const depts = data?.data?.data ?? data?.data ?? data;
+        if (Array.isArray(depts)) {
+          setDepartments(depts);
+        }
+      }).catch(console.error);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (open && location) {
       reset({
         code: location.code,
         name: location.name,
+        department_id: location.department_id || undefined,
       });
     } else if (open && !location) {
       reset({
         code: '',
         name: '',
+        department_id: user?.department_id || undefined,
       });
     }
-  }, [open, location, reset]);
+  }, [open, location, reset, user]);
+
 
   const onSubmit = async (data: LocationFormData) => {
     setLoading(true);
@@ -96,7 +126,29 @@ export const LocationFormDialog = ({ open, location, onClose }: LocationFormDial
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {user?.is_tenant_admin && (
+              <div className="space-y-2">
+                <Label htmlFor="department_id">Department (Optional)</Label>
+                <Select 
+                    value={watch('department_id') || ''} 
+                    onValueChange={(val) => setValue('department_id', val === 'none' ? undefined : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Global (No Department)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Global (No Department)</SelectItem>
+                    {departments.map(d => (
+                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Isolates this location to a specific department.</p>
+              </div>
+          )}
+
           <div className="space-y-2">
+
             <Label htmlFor="code">Code *</Label>
             <Input
               id="code"

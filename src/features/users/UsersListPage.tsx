@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Users,
@@ -9,6 +10,7 @@ import {
     MoreHorizontal,
     UserX,
     Pencil,
+    ShieldAlert,
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -37,14 +39,27 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { listUsers, deleteUser, type User } from '@/api/users';
+import { listUsers, deleteUser, revokeSessions, type User } from '@/api/users';
 import { UserFormDialog } from './UserFormDialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 export const UsersListPage = () => {
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [createOpen, setCreateOpen] = useState(false);
     const [editUser, setEditUser] = useState<User | null>(null);
+    const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null);
+
 
     const { data, isLoading } = useQuery({
         queryKey: ['users', search],
@@ -62,7 +77,24 @@ export const UsersListPage = () => {
         },
     });
 
-    const users = data?.data || [];
+    const revokeSessionsMutation = useMutation({
+        mutationFn: revokeSessions,
+        onSuccess: () => {
+            toast({ title: 'Sessions revoked successfully' });
+        },
+        onError: () => {
+            toast({ variant: 'destructive', title: 'Failed to revoke sessions' });
+        },
+    });
+
+    const confirmDeactivate = () => {
+        if (!userToDeactivate) return;
+        deleteMutation.mutate(userToDeactivate.id);
+        setUserToDeactivate(null);
+    };
+
+    const rawData = data as any;
+    const users: User[] = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : (Array.isArray(rawData?.data?.data) ? rawData.data.data : []));
 
     return (
         <Layout>
@@ -117,12 +149,13 @@ export const UsersListPage = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="w-[70px]"></TableHead>
-                            </TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Last Activity</TableHead>
+                                    <TableHead className="w-12"></TableHead>
+                                </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
@@ -155,6 +188,11 @@ export const UsersListPage = () => {
                                                     <ShieldCheck className="h-3 w-3" />
                                                     Admin
                                                 </Badge>
+                                            ) : user.roles?.some(r => r.name === 'department_admin') ? (
+                                                <Badge variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700">
+                                                    <ShieldCheck className="h-3 w-3" />
+                                                    Dept Admin
+                                                </Badge>
                                             ) : (
                                                 <Badge variant="secondary" className="gap-1">
                                                     <Shield className="h-3 w-3" />
@@ -162,10 +200,25 @@ export const UsersListPage = () => {
                                                 </Badge>
                                             )}
                                         </TableCell>
+
                                         <TableCell>
                                             <Badge variant={user.is_active ? 'outline' : 'destructive'}>
                                                 {user.is_active ? 'Active' : 'Inactive'}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {user.last_login_at ? (
+                                                <div className="text-xs">
+                                                    <span className="block font-medium">
+                                                        {format(new Date(user.last_login_at), 'MMM d, HH:mm')}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {user.last_login_ip || 'No IP'}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground italic">Never</span>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <DropdownMenu>
@@ -182,10 +235,23 @@ export const UsersListPage = () => {
                                                     {user.is_active && (
                                                         <DropdownMenuItem
                                                             className="text-destructive"
-                                                            onClick={() => deleteMutation.mutate(user.id)}
+                                                            onClick={() => setUserToDeactivate(user)}
                                                         >
                                                             <UserX className="mr-2 h-4 w-4" />
                                                             Deactivate
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {user.is_active && (
+                                                        <DropdownMenuItem
+                                                            className="text-orange-600"
+                                                            onClick={() => {
+                                                                if (confirm(`Revoke all active sessions for ${user.first_name}? They will be forced to log in again.`)) {
+                                                                    revokeSessionsMutation.mutate(user.id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <ShieldAlert className="mr-2 h-4 w-4" />
+                                                            Revoke Sessions
                                                         </DropdownMenuItem>
                                                     )}
                                                 </DropdownMenuContent>
@@ -219,6 +285,24 @@ export const UsersListPage = () => {
                     )}
                 </DialogContent>
             </Dialog>
+            {/* Confirm Deactivate Dialog */}
+            <AlertDialog open={!!userToDeactivate} onOpenChange={(open) => !open && setUserToDeactivate(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate User</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to deactivate {userToDeactivate?.first_name} {userToDeactivate?.last_name}? 
+                            They will immediately lose access to the system. You can reactivate them later by editing their profile.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                            Deactivate User
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Layout>
     );
 };

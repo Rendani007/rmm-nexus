@@ -15,7 +15,14 @@ export const login = async (body: AuthLoginBody): Promise<AuthLoginResp> => {
     tenant: d?.tenant,
     token: d?.token,
     expires_at: d?.expires_at,
-  } as AuthLoginResp;
+    mfa_required: d?.mfa_required,
+    mfa_token: d?.mfa_token,
+  } as AuthLoginResp & { mfa_required?: boolean; mfa_token?: string };
+};
+
+export const verifyMfa = async (body: { code: string }) => {
+  const res = await api.post('/auth/verify-mfa', body);
+  return unwrap<AuthLoginResp & { mfa_required?: boolean; mfa_token?: string }>(res.data);
 };
 
 export const profile = async () => {

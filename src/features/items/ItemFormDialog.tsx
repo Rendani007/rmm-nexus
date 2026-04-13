@@ -26,22 +26,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getDepartments } from '@/api/departments';
+import { useAuthStore } from '@/features/auth/useAuthStore';
+import type { Department } from '@/types';
 
 interface ItemFormDialogProps {
+
   open: boolean;
   item?: InventoryItem | null;
   onClose: (reload?: boolean) => void;
 }
 
 type ItemFormData = {
-  sku: string;
-  name: string;
-  category?: string;
-  uom: string;
-  reorder_level?: number;
-  // Dynamic fields will be collected separately
+  department_id?: string;
+  stock_on_hand?: number;
   [key: string]: any;
 };
+
 
 export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => {
   const [loading, setLoading] = useState(false);
@@ -59,105 +60,126 @@ export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => 
     resolver: zodResolver(itemSchema),
   });
 
-  // Fetch custom fields definition
+  const { user } = useAuthStore();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+
+  useEffect(() => {
+    if (user?.is_tenant_admin) {
+      getDepartments().then((data: any) => {
+        const depts = data.data || data;
+        if (Array.isArray(depts)) {
+          setDepartments(depts);
+          if (depts.length > 0 && !selectedDepartmentId && !item) {
+             setSelectedDepartmentId(depts[0].id);
+          }
+        }
+      }).catch(console.error);
+    } else if (user?.department_id) {
+        setSelectedDepartmentId(user.department_id);
+    }
+  }, [user, item, selectedDepartmentId]);
+
+  // Fetch custom fields definition based on selected department
   useEffect(() => {
     if (open) {
-      getCustomFields('inventory_item')
+      const deptId = selectedDepartmentId || undefined;
+      getCustomFields('inventory_item', deptId)
         .then(setCustomFields)
         .catch(console.error);
     }
-  }, [open]);
+  }, [open, selectedDepartmentId]);
+
 
   useEffect(() => {
     if (open && item) {
-      // 1. Standard fields
-      reset({
-        sku: item.sku,
-        name: item.name,
-        category: item.category || '',
-        uom: item.uom,
-        reorder_level: item.reorder_level,
+      setSelectedDepartmentId(item.department_id || '');
+      
+      const formValues: any = {};
+      
+      formValues['department_id'] = item.department_id || '';
+      formValues['stock_on_hand'] = item.stock_on_hand ?? 0;
+      
+      customFields.forEach(f => {
+         const key = f.field_key;
+         const coreKey = key.replace(/_\d+$/, '');
+         let val: any = undefined;
+         
+         if (['sku', 'name', 'category', 'uom', 'reorder_level'].includes(coreKey)) {
+            val = (item as any)[coreKey];
+         } else if (item.metadata) {
+            let meta: Record<string, any> = {};
+            try {
+              meta = typeof item.metadata === 'string'
+                ? JSON.parse(item.metadata)
+                : (item.metadata || {});
+            } catch (e) {
+              console.error('Failed to parse metadata in form', e);
+            }
+            val = meta[key];
+         }
+         
+         if (val !== undefined) {
+             formValues[`custom_${key}`] = val;
+         }
       });
-
-      // 2. Custom fields (stored in metadata)
-      if (item.metadata) {
-        let meta: Record<string, any> = {};
-        try {
-          meta = typeof item.metadata === 'string'
-            ? JSON.parse(item.metadata)
-            : (item.metadata || {});
-        } catch (e) {
-          console.error('Failed to parse metadata in form', e);
-        }
-
-        Object.entries(meta).forEach(([key, value]) => {
-          setValue(`custom_${key}`, value);
-        });
-      }
+      
+      reset(formValues);
 
     } else if (open && !item) {
-      reset({
-        sku: '',
-        name: '',
-        category: '',
-        uom: '',
-        reorder_level: undefined,
-      });
-      // Clear custom fields
-      // Clear custom fields
+      const formValues: any = { 
+        department_id: selectedDepartmentId || undefined
+      };
       customFields.forEach(f => {
         if (f.type === 'boolean') {
-          setValue(`custom_${f.field_key}`, false);
-        } else if (f.type === 'select') {
-          setValue(`custom_${f.field_key}`, '');
+           formValues[`custom_${f.field_key}`] = false;
         } else {
-          setValue(`custom_${f.field_key}`, '');
+           formValues[`custom_${f.field_key}`] = '';
         }
       });
+      reset(formValues);
     }
-  }, [open, item, reset, customFields, setValue]);
+  }, [open, item, reset, customFields, selectedDepartmentId]);
 
   const onSubmit = async (data: ItemFormData) => {
     setLoading(true);
     try {
-      // 1. Extract standard fields
       const payload: any = {
-        sku: data.sku,
-        name: data.name,
-        category: data.category || undefined,
-        uom: data.uom,
-        reorder_level: data.reorder_level || undefined,
+        department_id: selectedDepartmentId || undefined,
+        stock_on_hand: data.stock_on_hand !== undefined ? Number(data.stock_on_hand) : undefined,
         metadata: {},
       };
 
-      // 2. Extract custom fields using definitions
       customFields.forEach(field => {
         const val = data[`custom_${field.field_key}`];
+        const key = field.field_key;
+        
+        // Strip out trailing numeric uniqueness counters generated by the backend (e.g. "name_1" -> "name")
+        const coreKey = key.replace(/_\d+$/, '');
 
-        // Explicitly handle boolean false as valid value
-        if (field.type === 'boolean') {
-          payload.metadata[field.field_key] = Boolean(val);
-        }
-        else if (val !== undefined && val !== '') {
-          if (field.type === 'number') {
-            payload.metadata[field.field_key] = Number(val);
-          } else {
-            payload.metadata[field.field_key] = val;
-          }
+        let processedVal = val;
+        if (field.type === 'boolean') processedVal = Boolean(val);
+        else if (field.type === 'number' && val !== '' && val !== undefined) processedVal = Number(val);
+        
+        if (['sku', 'name', 'category', 'uom', 'reorder_level'].includes(coreKey)) {
+             payload[coreKey] = processedVal;
+        } else if (processedVal !== undefined && processedVal !== '') {
+             payload.metadata[key] = processedVal;
         }
       });
+
 
       if (isEdit) {
         await updateItem(item.id, payload);
         toast({
           title: 'Item updated',
-          description: `${data.name} has been updated.`,
+          description: 'The item has been updated successfully.',
         });
       } else {
         await createItem(payload);
         toast({
           title: 'Item created',
-          description: `${data.name} has been created.`,
+          description: 'The item has been created successfully.',
         });
       }
 
@@ -190,8 +212,7 @@ export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => 
   const getFieldDef = (key: string) => customFields.find(f => f.field_key === key);
 
   const renderCustomField = (field: CustomFieldDefinition) => {
-    // Only render truly custom fields (not system ones) in the additional details section
-    if (field.is_system) return null;
+
 
     const fieldName = `custom_${field.field_key}`;
 
@@ -257,93 +278,60 @@ export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => 
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sku">
-                {getFieldDef('sku')?.label ?? 'SKU'} {getFieldDef('sku')?.is_required ? '*' : ''}
-              </Label>
-              <Input
-                id="sku"
-                {...register('sku')}
-                disabled={loading}
-                placeholder={getFieldDef('sku')?.label ?? 'SKU'}
-              />
-              {errors.sku && (
-                <p className="text-sm text-destructive">{errors.sku.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="uom">
-                {getFieldDef('uom')?.label ?? 'Unit of Measure'} {getFieldDef('uom')?.is_required ? '*' : ''}
-              </Label>
-              <Input
-                id="uom"
-                {...register('uom')}
-                disabled={loading}
-                placeholder={getFieldDef('uom')?.label ?? 'Unit of Measure'}
-              />
-              {errors.uom && (
-                <p className="text-sm text-destructive">{errors.uom.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              {getFieldDef('name')?.label ?? 'Name'} {getFieldDef('name')?.is_required ? '*' : ''}
-            </Label>
-            <Input
-              id="name"
-              {...register('name')}
-              disabled={loading}
-              placeholder={getFieldDef('name')?.label ?? 'Name'}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">
-                {getFieldDef('category')?.label ?? 'Category'} {getFieldDef('category')?.is_required ? '*' : ''}
-              </Label>
-              <Input
-                id="category"
-                {...register('category')}
-                disabled={loading}
-                placeholder={getFieldDef('category')?.label ?? 'Optional'}
-              />
-              {errors.category && (
-                <p className="text-sm text-destructive">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reorder_level">
-                {getFieldDef('reorder_level')?.label ?? 'Reorder Level'} {getFieldDef('reorder_level')?.is_required ? '*' : ''}
-              </Label>
-              <Input
-                id="reorder_level"
-                type="number"
-                {...register('reorder_level')}
-                disabled={loading}
-                placeholder="0"
-              />
-              {errors.reorder_level && (
-                <p className="text-sm text-destructive">{errors.reorder_level.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Dynamic Sections (Only non-system custom fields) */}
-          {customFields.filter(f => !f.is_system).length > 0 && (
-            <div className="border-t pt-4">
-              <h4 className="mb-4 text-sm font-medium text-muted-foreground">Additional Details</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {customFields.map(renderCustomField)}
+          {user?.is_tenant_admin && (
+              <div className="space-y-2 pb-4 border-b">
+                <Label htmlFor="department_id">Department</Label>
+                <Select 
+                    value={selectedDepartmentId} 
+                    onValueChange={(val) => {
+                        setSelectedDepartmentId(val);
+                        // Changing department clears the form because fields might be totally different
+                        reset({ department_id: val }); 
+                    }}
+                    disabled={isEdit} // Cannot change department after creation typically, or disable for simplicity
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => (
+                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">The department determines which attributes are available for this item.</p>
               </div>
+          )}
+          
+          {customFields.length === 0 ? (
+              <div className="text-sm text-center py-6 text-muted-foreground">
+                  No attributes are defined for this department. Please define attributes in settings.
+              </div>
+          ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {customFields.sort((a,b) => a.sort_order - b.sort_order).map(renderCustomField)}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="stock_on_hand">Stock</Label>
+                  <Input
+                    id="stock_on_hand"
+                    type="number"
+                    {...register('stock_on_hand', { valueAsNumber: true })}
+                    disabled={loading}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+          )}
+
+          {Object.keys(errors).length > 0 && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+              <p className="font-semibold mb-1">Please fix the following errors:</p>
+              <ul className="list-disc pl-5">
+                {Object.entries(errors).map(([key, err]: any) => (
+                  <li key={key}>{key}: {err.message}</li>
+                ))}
+              </ul>
             </div>
           )}
 

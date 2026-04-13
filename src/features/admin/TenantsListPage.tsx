@@ -20,16 +20,24 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { MoreHorizontal, Play, Pause, CreditCard } from 'lucide-react';
+import { MoreHorizontal, Play, Pause, CreditCard, ShieldAlert } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const TenantsListPage = () => {
     const [tenants, setTenants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
     const { setAuth } = useAuthStore();
     const navigate = useNavigate();
 
@@ -192,25 +200,28 @@ export const TenantsListPage = () => {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => setSelectedTenant(tenant)}>
+                                                        View Details
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleImpersonate(tenant)}>
                                                         <CreditCard className="mr-2 h-4 w-4" /> Login as Admin
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleStatusToggle(tenant)}>
+                                                    <DropdownMenuItem onClick={() => handleStatusToggle(tenant)} className={tenant.is_active ? "text-red-600 focus:text-red-600" : "text-green-600 focus:text-green-600"}>
                                                         {tenant.is_active ? (
                                                             <>
-                                                                <Pause className="mr-2 h-4 w-4" /> Deactivate
+                                                                <ShieldAlert className="mr-2 h-4 w-4" /> Suspend Tenant
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Play className="mr-2 h-4 w-4" /> Activate
+                                                                <Play className="mr-2 h-4 w-4" /> Restore Access
                                                             </>
                                                         )}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuLabel>Change Plan</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => handlePlanChange(tenant, 'basic')} disabled={tenant.plan === 'basic'}>
-                                                        Basic (Free)
+                                                    <DropdownMenuLabel>Force Plan Change</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => handlePlanChange(tenant, 'starter')} disabled={tenant.plan === 'starter'}>
+                                                        Starter
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handlePlanChange(tenant, 'professional')} disabled={tenant.plan === 'professional'}>
                                                         Professional
@@ -228,6 +239,76 @@ export const TenantsListPage = () => {
                     </Table>
                 </div>
             </div>
+
+            {/* Slide-out Details Panel */}
+            <Sheet open={!!selectedTenant} onOpenChange={(open) => !open && setSelectedTenant(null)}>
+                <SheetContent className="sm:max-w-xl overflow-y-auto">
+                    {selectedTenant && (
+                        <>
+                            <SheetHeader className="mb-6">
+                                <SheetTitle className="text-2xl">{selectedTenant.name}</SheetTitle>
+                                <SheetDescription>
+                                    Registered via subdomain <span className="font-medium text-foreground">{selectedTenant.slug}</span>
+                                </SheetDescription>
+                            </SheetHeader>
+
+                            <div className="space-y-6">
+                                {/* Status Card */}
+                                <div className="p-4 bg-muted rounded-lg border flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-medium text-muted-foreground mb-1">Account Status</div>
+                                        {selectedTenant.is_active ? (
+                                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active & Accessible</Badge>
+                                        ) : (
+                                            <Badge variant="destructive">Suspended</Badge>
+                                        )}
+                                    </div>
+                                    <Button 
+                                        variant={selectedTenant.is_active ? "destructive" : "default"} 
+                                        size="sm"
+                                        onClick={() => handleStatusToggle(selectedTenant)}
+                                    >
+                                        {selectedTenant.is_active ? "Suspend Access" : "Restore Access"}
+                                    </Button>
+                                </div>
+
+                                {/* Subscription details */}
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Subscription Details</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <div className="text-sm text-muted-foreground">Current Plan</div>
+                                            <div className="font-medium capitalize">{selectedTenant.plan}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm text-muted-foreground">User Limit</div>
+                                            <div className="font-medium">{selectedTenant.max_users || 'Unlimited'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm text-muted-foreground">Registered Date</div>
+                                            <div className="font-medium">{selectedTenant.created_at ? format(new Date(selectedTenant.created_at), 'PPP') : '-'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm text-muted-foreground">Admin Contact</div>
+                                            <div className="font-medium">{selectedTenant.admin_email || 'Not provided'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Danger Zone */}
+                                <div className="pt-6">
+                                    <h3 className="text-lg font-semibold text-red-600 mb-4 border-b pb-2">Admin Actions</h3>
+                                    <div className="flex flex-col gap-3">
+                                        <Button variant="outline" className="w-full justify-start" onClick={() => handleImpersonate(selectedTenant)}>
+                                            <CreditCard className="mr-2 h-4 w-4" /> Impersonate Tenant Admin
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </SheetContent>
+            </Sheet>
         </SuperAdminLayout>
     );
 };

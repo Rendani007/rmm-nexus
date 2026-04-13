@@ -8,6 +8,11 @@ export interface AdminStats {
     active_tenants: number;
     total_users: number;
     recent_tenants: any[];
+    mrr: number;
+    arr: number;
+    active_subscriptions: number;
+    plan_distribution: { plan_name: string; count: number }[];
+    revenue_chart: { month: string; revenue: number }[];
 }
 
 export const getAdminStats = async () => {
@@ -38,4 +43,14 @@ export const updateTenant = async (id: string, data: { is_active?: boolean; plan
 export const impersonateTenant = async (id: string) => {
     const res = await api.post(`/admin/tenants/${id}/impersonate`);
     return unwrap<any>(res.data);
+};
+
+export const clearSystemCache = async () => {
+    const res = await api.post('/admin/system/clear-cache');
+    return unwrap<{message: string}>(res.data);
+};
+
+export const restartQueueWorkers = async () => {
+    const res = await api.post('/admin/system/restart-queue');
+    return unwrap<{message: string}>(res.data);
 };
