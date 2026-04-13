@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, Trash2, Loader2, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 import { useNavigate } from 'react-router-dom'; // Added useNavigate
@@ -24,20 +24,39 @@ import {
     DialogTrigger,
     DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Layout } from '@/components/Layout';
-import { getCustomFields, createCustomField, deleteCustomField, updateCustomField } from '@/api/customFields';
-import type { CustomFieldDefinition, CreateCustomFieldBody, CustomFieldType } from '@/types';
+import { getCustomFields, createCustomField, deleteCustomField, updateCustomField, bulkDeleteCustomFields } from '@/api/customFields';
+import { getDepartments } from '@/api/departments';
+import { useAuthStore } from '@/features/auth/useAuthStore';
+import type { CustomFieldDefinition, CreateCustomFieldBody, CustomFieldType, Department } from '@/types';
+
 
 export const CustomFieldsSettingsPage = () => {
-    const navigate = useNavigate(); // Added hook
+    const { user } = useAuthStore();
+    const navigate = useNavigate();
     const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('__all__'); // Default to All Departments
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
+    const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
+    const [isDeletingAll, setIsDeletingAll] = useState(false);
 
     const { register, handleSubmit, reset, setValue, watch } = useForm<CreateCustomFieldBody>({
         defaultValues: {
@@ -56,6 +75,7 @@ export const CustomFieldsSettingsPage = () => {
                 type: editingField.type,
                 sort_order: editingField.sort_order,
                 is_required: editingField.is_required,
+                department_id: editingField.department_id || 'global',
             });
         } else {
             reset({
@@ -64,29 +84,60 @@ export const CustomFieldsSettingsPage = () => {
                 type: 'text',
                 sort_order: 0,
                 is_required: false,
+                department_id: selectedDepartmentId === '__all__' ? 'global' : selectedDepartmentId,
             });
         }
-    }, [editingField, reset]);
+    }, [editingField, reset, selectedDepartmentId]);
 
-    const fetchFields = async () => {
+    useEffect(() => {
+        if (user?.is_tenant_admin) {
+            getDepartments().then((data: any) => {
+                // Backend returns paginated: { status, data: { data: [...], ... } }
+                const depts = data?.data?.data ?? data?.data ?? data;
+                if (Array.isArray(depts)) {
+                    setDepartments(depts);
+                }
+            }).catch(console.error);
+        } else if (user?.department_id) {
+            setSelectedDepartmentId(user.department_id);
+        }
+    }, [user]);
+
+    const fetchFields = useCallback(async () => {
+        if (!user) return;
+
+        setLoading(true);
         try {
-            const data = await getCustomFields('inventory_item');
-            setFields(data);
+            // '__all__' = All Departments → no filter → backend returns all fields
+            // 'global' → filter for null department_id (shared fields)
+            // any UUID → filter for that specific department
+            const deptId = selectedDepartmentId === '__all__' ? undefined : selectedDepartmentId;
+            const data = await getCustomFields('inventory_item', deptId);
+            setFields(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load custom fields');
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedDepartmentId, user]);
 
     useEffect(() => {
         fetchFields();
-    }, []);
+    }, [fetchFields]);
 
     const onSubmit = async (data: CreateCustomFieldBody) => {
         setSubmitting(true);
+        
+        // Use the form's specific department_id, fallback appropriately
+        let finalDeptId = data.department_id;
+        if (finalDeptId === 'global' || finalDeptId === '__all__') {
+            finalDeptId = null;
+        }
+        data.department_id = finalDeptId;
+        
         try {
+
             if (editingField) {
                 await updateCustomField(editingField.id, data);
                 toast.success('Field updated');
@@ -105,14 +156,40 @@ export const CustomFieldsSettingsPage = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this field? Data stored in this field may be lost.')) return;
+    const executeDelete = async () => {
+        if (!fieldToDelete) return;
+        const id = fieldToDelete;
+        setFieldToDelete(null); // Close dialog immediately
+        
+        // Optimistic UI update for smooth disappearance
+        const previousFields = [...fields];
+        setFields(prev => prev.filter(f => f.id !== id));
+
         try {
             await deleteCustomField(id);
             toast.success('Field deleted');
+            // Background refetch without loading spinner
             fetchFields();
         } catch (error) {
+            // Revert on failure
+            setFields(previousFields);
             toast.error('Failed to delete field');
+        }
+    };
+
+    const executeDeleteAll = async () => {
+        setIsDeletingAll(true);
+        try {
+            const idsToDelete = fields.map(f => f.id);
+            await bulkDeleteCustomFields(idsToDelete);
+            toast.success(`Deleted ${idsToDelete.length} fields successfully.`);
+            setIsDeleteAllOpen(false);
+            setFields([]);
+        } catch (error) {
+            console.error('Failed to delete all fields:', error);
+            toast.error('Failed to delete all fields.');
+        } finally {
+            setIsDeletingAll(false);
         }
     };
 
@@ -131,25 +208,53 @@ export const CustomFieldsSettingsPage = () => {
                             </p>
                         </div>
                     </div>
-                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                        setIsDialogOpen(open);
-                        if (!open) {
-                            setEditingField(null);
-                            reset();
-                        }
-                    }}>
-                        <DialogTrigger asChild>
-                            <Button onClick={() => setEditingField(null)}>
-                                <Plus className="mr-2 h-4 w-4" /> Add Field
-                            </Button>
-                        </DialogTrigger>
+
+                    {user?.is_tenant_admin && (
+                        <div className="flex items-center gap-2">
+                            <Label className="text-muted-foreground whitespace-nowrap text-sm">Manage fields for:</Label>
+                            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue placeholder="Select Scope" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__all__">All Departments</SelectItem>
+                                    <SelectItem value="global">Global (No Department)</SelectItem>
+                                    {departments.map(d => (
+                                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="destructive" 
+                            onClick={() => setIsDeleteAllOpen(true)} 
+                            disabled={fields.length === 0 || loading}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete All
+                        </Button>
+                        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+
+                            setIsDialogOpen(open);
+                            if (!open) {
+                                setEditingField(null);
+                                reset();
+                            }
+                        }}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setEditingField(null)}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add Field
+                                </Button>
+                            </DialogTrigger>
                         <DialogContent onInteractOutside={(e) => e.preventDefault()}>
                             <DialogHeader>
                                 <DialogTitle>{editingField ? 'Edit Field' : 'Add Custom Field'}</DialogTitle>
                                 <DialogDescription>
                                     {editingField
                                         ? `Update the configuration for ${editingField.label}.`
-                                        : 'Add a new attribute to track for your inventory items.'}
+                                        : `Add a new attribute to track for your inventory items.`}
                                 </DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -157,6 +262,26 @@ export const CustomFieldsSettingsPage = () => {
                                     <Label htmlFor="label">Field Label</Label>
                                     <Input id="label" placeholder="e.g. Expiry Date" {...register('label', { required: true })} />
                                 </div>
+
+                                {user?.is_tenant_admin && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department_id">Scope</Label>
+                                        <Select onValueChange={(val) => setValue('department_id', val)} value={watch('department_id') || 'global'}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Scope" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="global">Global (All Departments)</SelectItem>
+                                                {departments.map(d => (
+                                                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-[10px] text-muted-foreground pt-1">
+                                            If Global, the field appears on all items across all departments.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label htmlFor="type">Data Type</Label>
@@ -197,6 +322,7 @@ export const CustomFieldsSettingsPage = () => {
                             </form>
                         </DialogContent>
                     </Dialog>
+                    </div>
                 </div>
 
                 <Card>
@@ -215,6 +341,7 @@ export const CustomFieldsSettingsPage = () => {
                                     <TableRow>
                                         <TableHead>Label</TableHead>
                                         <TableHead>Key</TableHead>
+                                        <TableHead>Scope</TableHead>
                                         <TableHead>Type</TableHead>
                                         <TableHead>Required</TableHead>
                                         <TableHead>Order</TableHead>
@@ -233,6 +360,12 @@ export const CustomFieldsSettingsPage = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-sm font-mono">{field.field_key}</TableCell>
+                                            <TableCell>
+                                                {field.department_id 
+                                                    ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Department')
+                                                    : <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-50">Global</Badge>
+                                                }
+                                            </TableCell>
                                             <TableCell className="capitalize">{field.type}</TableCell>
                                             <TableCell>{field.is_required ? 'Yes' : 'No'}</TableCell>
                                             <TableCell>{field.sort_order}</TableCell>
@@ -247,12 +380,12 @@ export const CustomFieldsSettingsPage = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleDelete(field.id)}
-                                                        disabled={field.is_system}
+                                                        onClick={() => setFieldToDelete(field.id)}
                                                         className="text-destructive hover:text-destructive disabled:opacity-30"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
+
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -262,6 +395,43 @@ export const CustomFieldsSettingsPage = () => {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Confirm Delete Dialog */}
+                <AlertDialog open={!!fieldToDelete} onOpenChange={(open) => !open && setFieldToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete this custom field. Any data currently stored in this field for your inventory items may be lost or rendered inaccessible. 
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={executeDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                Delete Field
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Confirm Delete All Dialog */}
+                <AlertDialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete All Attributes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete <strong>all {fields.length}</strong> custom attributes in the current scope. Any data mapped to these attributes will be hidden or lost. This action cannot be undone. Are you absolutely sure?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={isDeletingAll}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={executeDeleteAll} disabled={isDeletingAll} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                {isDeletingAll && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Yes, Delete All
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </Layout>
     );

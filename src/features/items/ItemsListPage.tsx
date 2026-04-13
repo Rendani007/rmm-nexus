@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -22,13 +23,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Layout } from '@/components/Layout';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { listItems, deleteItem, downloadExport } from '@/api/items';
+import { listItems, deleteItem, downloadExport, bulkDeleteItems } from '@/api/items';
 import { ItemFormDialog } from './ItemFormDialog';
 import { ItemStockDrawer } from './ItemStockDrawer';
 import { ImportItemsDialog } from './ImportItemsDialog';
 import { getCustomFields } from '@/api/customFields';
-import type { InventoryItem, CustomFieldDefinition } from '@/types';
+import { getDepartments } from '@/api/departments';
+import { useAuthStore } from '@/features/auth/useAuthStore';
+import type { InventoryItem, CustomFieldDefinition, Department } from '@/types';
+
+
 
 function normalizeItems(payload: unknown): InventoryItem[] {
   if (Array.isArray(payload)) return payload as InventoryItem[];
@@ -55,12 +61,31 @@ export const ItemsListPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [deleting, setDeleting] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user?.is_tenant_admin) {
+      getDepartments().then((data: any) => {
+        // Backend returns paginated: { status, data: { data: [...], current_page, ... } }
+        const depts = data?.data?.data ?? data?.data ?? data;
+        if (Array.isArray(depts)) {
+          setDepartments(depts);
+        }
+      }).catch(console.error);
+    } else if (user?.department_id) {
+        setSelectedDepartmentId(user.department_id);
+    }
+  }, [user]);
 
   const fetchFieldDefs = async () => {
     try {
-      const defs = await getCustomFields('inventory_item');
+      const deptId = selectedDepartmentId || undefined;
+      const defs = await getCustomFields('inventory_item', deptId);
       console.log('[ItemsListPage] Custom Fields Loaded:', defs);
       setCustomFields(defs);
     } catch (e) {
@@ -69,9 +94,11 @@ export const ItemsListPage = () => {
   };
 
   const loadItems = async () => {
-    setLoading(true);
+    if (items.length === 0) setLoading(true);
     try {
-      const data = await listItems();
+      const qs = selectedDepartmentId ? `?department_id=${selectedDepartmentId}` : '';
+      const data = await listItems(qs); // Assumes listItems accepts optional query string. If not, we might need a params object.
+
       const normalized = normalizeItems(data);
       setItems(normalized);
       setFilteredItems(normalized);
@@ -85,9 +112,15 @@ export const ItemsListPage = () => {
   }
 
   useEffect(() => {
-    loadItems();
-    fetchFieldDefs();
-  }, []);
+    // Always load items once we know who the user is.
+    // For tenants admins selectedDepartmentId may be set,
+    // for other users it may be empty — both cases should still fetch.
+    if (user !== undefined) {
+      loadItems();
+      fetchFieldDefs();
+    }
+  }, [selectedDepartmentId, user]);
+
 
   useEffect(() => {
     if (!Array.isArray(items)) return;
@@ -99,9 +132,9 @@ export const ItemsListPage = () => {
     const filtered = items.filter((item) => {
       // Check core fields first
       if (
-        item.name.toLowerCase().includes(q) ||
-        item.sku.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q)
+        (item.name?.toLowerCase() || '').includes(q) ||
+        (item.sku?.toLowerCase() || '').includes(q) ||
+        (item.category?.toLowerCase() || '').includes(q)
       ) return true;
 
       // Check custom fields
@@ -118,17 +151,31 @@ export const ItemsListPage = () => {
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
-    setDeleting(true);
+    
+    const id = itemToDelete.id;
+    const name = itemToDelete.name;
+    
+    // Close dialog and start optimistic updates
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+
+    const prevItems = [...items];
+    const prevFiltered = [...filteredItems];
+    
+    setItems(prev => prev.filter(i => i.id !== id));
+    setFilteredItems(prev => prev.filter(i => i.id !== id));
+
     try {
-      await deleteItem(itemToDelete.id);
+      await deleteItem(id);
       toast({
         title: 'Item deleted',
-        description: `${itemToDelete.name} has been deleted.`,
+        description: `${name} has been deleted.`,
       });
-      await loadItems();
-      setDeleteDialogOpen(false);
-      setItemToDelete(null);
+      loadItems(); // Background refresh
     } catch (error: any) {
+      // Revert optimism
+      setItems(prevItems);
+      setFilteredItems(prevFiltered);
       toast({
         variant: 'destructive',
         title: 'Failed to delete item',
@@ -136,6 +183,29 @@ export const ItemsListPage = () => {
       });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (filteredItems.length === 0) return;
+    setDeleting(true);
+    try {
+      const ids = filteredItems.map(i => i.id);
+      await bulkDeleteItems(ids);
+      toast({
+        title: 'Bulk delete successful',
+        description: `Deleted ${ids.length} items.`,
+      });
+      loadItems();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete items',
+        description: error?.response?.data?.message || 'An error occurred',
+      });
+    } finally {
+      setDeleting(false);
+      setBulkDeleteDialogOpen(false);
     }
   };
 
@@ -169,7 +239,10 @@ export const ItemsListPage = () => {
 
   const handleImportClose = (reload?: boolean) => {
     setImportDialogOpen(false);
-    if (reload) loadItems();
+    if (reload) {
+      loadItems();
+      fetchFieldDefs();
+    }
   };
 
   const isArray = Array.isArray(filteredItems);
@@ -190,6 +263,12 @@ export const ItemsListPage = () => {
               <Download className="mr-2 h-4 w-4" />
               {exporting ? 'Exporting...' : 'Export'}
             </Button>
+            {filteredItems.length > 0 && (
+              <Button variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Visible
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Import
@@ -199,10 +278,12 @@ export const ItemsListPage = () => {
               New Item
             </Button>
           </div>
+
+
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
+          <div className="relative flex-1 w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, SKU, or category..."
@@ -211,37 +292,59 @@ export const ItemsListPage = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
+          {user?.is_tenant_admin && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Department:</span>
+              <Select
+                value={selectedDepartmentId || '__all__'}
+                onValueChange={(val) => setSelectedDepartmentId(val === '__all__' ? '' : val)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Departments</SelectItem>
+                  {departments.map(d => (
+                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
+
 
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Stock</TableHead>
                 {customFields
                   .sort((a, b) => a.sort_order - b.sort_order)
                   .map((field) => (
                     <TableHead key={field.id}>{field.label}</TableHead>
                   ))}
+                <TableHead>Stock</TableHead>
+
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={customFields.length + 1} className="text-center py-8">
+                  <TableCell colSpan={customFields.length + 2} className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : !isArray ? (
                 <TableRow>
-                  <TableCell colSpan={customFields.length + 1} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={customFields.length + 2} className="text-center py-8 text-muted-foreground">
                     Unexpected data shape received. Please try again.
                   </TableCell>
                 </TableRow>
               ) : filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={customFields.length + 1} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={customFields.length + 2} className="text-center py-8 text-muted-foreground">
                     {search ? 'No items found matching your search.' : 'No items yet. Create your first item to get started.'}
                   </TableCell>
                 </TableRow>
@@ -260,16 +363,35 @@ export const ItemsListPage = () => {
                           console.error('Failed to parse metadata', e);
                         }
 
-                        const value = field.is_system
-                          ? (item as any)[field.field_key]
+                        const coreKey = field.field_key.replace(/_\d+$/, '');
+                        const isCoreField = ['sku', 'name', 'category', 'uom', 'reorder_level'].includes(coreKey);
+
+                        const value = isCoreField || field.is_system
+                          ? (item as any)[coreKey]
                           : meta[field.field_key];
+
+                        let displayContent: React.ReactNode = value?.toString() || '-';
+                        
+                        if (field.type === 'boolean') {
+                          // Handle string 'true'/'false', actual booleans, and 1/0
+                          const isTruthy = value === true || value === 'true' || value === 1 || value === '1' || value === 'Yes';
+                          const isFalsy = value === false || value === 'false' || value === 0 || value === '0' || value === 'No';
+                          
+                          if (isTruthy) {
+                              displayContent = <Badge variant="default" className="bg-green-600 hover:bg-green-700">Yes</Badge>;
+                          } else if (isFalsy) {
+                              displayContent = <Badge variant="secondary" className="text-muted-foreground">No</Badge>;
+                          } else {
+                              displayContent = <span className="text-muted-foreground">-</span>;
+                          }
+                        }
 
                         return (
                           <TableCell
                             key={field.id}
                             className={field.field_key === 'sku' ? 'font-medium' : ''}
                           >
-                            {value?.toString() || '-'}
+                            {displayContent}
                           </TableCell>
                         );
                       })}
@@ -304,6 +426,8 @@ export const ItemsListPage = () => {
                         </Button>
                       </div>
                     </TableCell>
+
+
                   </TableRow>
                 ))
               )}
@@ -320,8 +444,10 @@ export const ItemsListPage = () => {
 
       <ImportItemsDialog
         open={importDialogOpen}
+        departmentId={selectedDepartmentId}
         onClose={handleImportClose}
       />
+
 
       <ItemStockDrawer
         open={stockDrawerOpen}
@@ -349,6 +475,28 @@ export const ItemsListPage = () => {
             >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Visible Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {filteredItems.length} items? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

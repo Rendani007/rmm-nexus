@@ -20,8 +20,14 @@ export interface User {
   department_id?: UUID;
   is_tenant_admin: boolean;
   is_super_admin?: boolean;
+  role?: 'department_admin' | 'user';
   must_change_password?: boolean;
+  mfa_enabled?: boolean;
+  mfa_secret?: string;
+  last_login_at?: string;
+  last_login_ip?: string;
 }
+
 
 export interface AuthLoginBody {
   email: string;
@@ -40,7 +46,9 @@ export interface AuthLoginResp {
 export interface InventoryItem {
   id: UUID;
   tenant_id: UUID;
-  sku: string;
+  department_id?: UUID;
+  sku?: string;
+
   name: string;
   category?: string;
   uom: string;
@@ -54,7 +62,9 @@ export interface InventoryItem {
 export interface InventoryLocation {
   id: UUID;
   tenant_id: UUID;
+  department_id?: UUID;
   code: string;
+
   name: string;
   total_items?: number;
   stock_on_hand?: number;
@@ -103,8 +113,10 @@ export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean' | 'select';
 export interface CustomFieldDefinition {
   id: UUID;
   tenant_id: UUID;
+  department_id?: UUID | null;
   entity_type: string;
   field_key: string;
+
   label: string;
   type: CustomFieldType;
   options?: any;
@@ -116,8 +128,10 @@ export interface CustomFieldDefinition {
 }
 
 export interface CreateCustomFieldBody {
+  department_id?: string | null;
   entity_type: string;
   label: string;
+
   type: CustomFieldType;
   options?: any;
   sort_order?: number;
@@ -158,5 +172,35 @@ export interface CreateTransferRequestBody {
   from_location_id: UUID;
   qty: number;
   notes?: string;
+}
+
+export interface Incident {
+  id: UUID;
+  tenant_id: UUID;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  status: 'open' | 'investigating' | 'resolved' | 'closed';
+  reported_at: string;
+  resolved_at?: string;
+  reported_by: UUID;
+  created_at: string;
+  updated_at: string;
+  reporter?: User;
+}
+
+export interface Risk {
+  id: UUID;
+  tenant_id: UUID;
+  description: string;
+  likelihood: number;
+  impact: number;
+  mitigation_plan: string;
+  owner_id: UUID;
+  status: 'identified' | 'managed' | 'residual' | 'accepted';
+  review_date: string;
+  created_at: string;
+  updated_at: string;
+  owner?: User;
 }
 

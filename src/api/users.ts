@@ -13,6 +13,8 @@ export interface User {
     is_active: boolean;
     is_tenant_admin: boolean;
     last_login_at?: string;
+    last_login_ip?: string;
+    mfa_enabled?: boolean;
     created_at: string;
     roles?: { name: string }[];
 }
@@ -67,5 +69,10 @@ export const updateUser = async (userId: string, body: UpdateUserBody) => {
 
 export const deleteUser = async (userId: string) => {
     const res = await api.delete(`/users/${userId}`);
+    return unwrap(res.data);
+};
+
+export const revokeSessions = async (userId: string) => {
+    const res = await api.post(`/users/${userId}/revoke-sessions`);
     return unwrap(res.data);
 };

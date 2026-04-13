@@ -8,10 +8,12 @@ import { toast } from 'sonner';
 
 interface ImportItemsDialogProps {
     open: boolean;
+    departmentId?: string;
     onClose: (reload?: boolean) => void;
 }
 
-export const ImportItemsDialog = ({ open, onClose }: ImportItemsDialogProps) => {
+export const ImportItemsDialog = ({ open, departmentId, onClose }: ImportItemsDialogProps) => {
+
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
@@ -31,7 +33,9 @@ export const ImportItemsDialog = ({ open, onClose }: ImportItemsDialogProps) => 
         setResult(null);
 
         try {
-            const res = await importItems(file);
+            const params = departmentId ? { department_id: departmentId } : undefined;
+            const res = await importItems(file, params);
+
             setResult({
                 created: res.created,
                 updated: res.updated,
@@ -96,10 +100,18 @@ export const ImportItemsDialog = ({ open, onClose }: ImportItemsDialogProps) => 
 
                             <div className="flex items-center justify-between text-sm text-muted-foreground">
                                 <p>Need the correct format?</p>
-                                <Button variant="link" size="sm" onClick={downloadTemplate} className="h-auto p-0">
+                                <Button variant="link" size="sm" onClick={async () => {
+                                    try {
+                                        const params = departmentId ? { department_id: departmentId } : undefined;
+                                        await downloadTemplate(params);
+                                    } catch (e) {
+                                        toast.error("Failed to download template");
+                                    }
+                                }} className="h-auto p-0">
                                     <FileDown className="mr-1 h-3 w-3" /> Download Template
                                 </Button>
                             </div>
+
                         </>
                     ) : (
                         <div className="space-y-4">

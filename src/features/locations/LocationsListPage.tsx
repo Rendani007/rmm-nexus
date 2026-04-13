@@ -25,7 +25,9 @@ import { toast } from '@/hooks/use-toast';
 import { listLocations, deleteLocation } from '@/api/locations';
 import { LocationFormDialog } from './LocationFormDialog';
 import { LocationStockDrawer } from './LocationStockDrawer';
+import { useAuthStore } from '@/features/auth/useAuthStore';
 import type { InventoryLocation } from '@/types';
+
 import {
   Tooltip,
   TooltipContent,
@@ -56,9 +58,11 @@ export const LocationsListPage = () => {
   const [locationToDelete, setLocationToDelete] = useState<InventoryLocation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [drawerLocationId, setDrawerLocationId] = useState<string | null>(null);
+  const { user } = useAuthStore();
+
 
   const loadLocations = async () => {
-    setLoading(true);
+    if (locations.length === 0) setLoading(true);
     try {
       const data = await listLocations();
       const normalized = normalizeLocations(data);
@@ -101,17 +105,28 @@ export const LocationsListPage = () => {
 
   const handleDelete = async () => {
     if (!locationToDelete) return;
-    setDeleting(true);
+    const locId = locationToDelete.id;
+    const locName = locationToDelete.name;
+    
+    // Close dialog and optimistic UI
+    setDeleteDialogOpen(false);
+    setLocationToDelete(null);
+
+    const previousLocations = [...locations];
+    setLocations((prev) => prev.filter((l) => l.id !== locId));
+    setFilteredLocations((prev) => prev.filter((l) => l.id !== locId));
+
     try {
-      await deleteLocation(locationToDelete.id);
+      await deleteLocation(locId);
       toast({
         title: 'Location deleted',
-        description: `${locationToDelete.name} has been deleted.`,
+        description: `${locName} has been deleted.`,
       });
-      await loadLocations();
-      setDeleteDialogOpen(false);
-      setLocationToDelete(null);
+      loadLocations(); // Background refresh
     } catch (error: any) {
+      // Revert optimism
+      setLocations(previousLocations);
+      setFilteredLocations(previousLocations);
       toast({
         variant: 'destructive',
         title: 'Failed to delete location',
@@ -143,11 +158,14 @@ export const LocationsListPage = () => {
             <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
             <p className="text-muted-foreground">Manage your storage locations</p>
           </div>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Location
-          </Button>
+          {(user?.is_tenant_admin || user?.role === 'department_admin') && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Location
+            </Button>
+          )}
         </div>
+
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -217,42 +235,49 @@ export const LocationsListPage = () => {
                               <p>View Stock</p>
                             </TooltipContent>
                           </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(location)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Edit Location</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setLocationToDelete(location);
-                                  setDeleteDialogOpen(true);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Delete Location</p>
-                            </TooltipContent>
-                          </Tooltip>
                         </TooltipProvider>
+
+                        {(user?.is_tenant_admin || user?.role === 'department_admin') && (
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEdit(location)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit Location</p>
+                                </TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setLocationToDelete(location);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete Location</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))
               )}

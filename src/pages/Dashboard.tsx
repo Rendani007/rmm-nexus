@@ -169,11 +169,12 @@ export const Dashboard = () => {
                 <div className="h-7 w-16 animate-pulse rounded bg-muted" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{locations.length}</div>
+                  <div className="text-2xl font-bold">{user?.is_tenant_admin ? locations.length : '-'}</div>
                   <p className="text-xs text-muted-foreground">
-                    Storage locations
+                    {user?.is_tenant_admin ? 'Storage locations' : 'Restricted view'}
                   </p>
                 </>
+
               )}
             </CardContent>
           </Card>
@@ -184,9 +185,16 @@ export const Dashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Coming soon</p>
+              {user?.is_tenant_admin ? (
+                <>
+                  <div className="text-2xl font-bold">-</div>
+                  <p className="text-xs text-muted-foreground">Coming soon</p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Restricted to Administrators</p>
+              )}
             </CardContent>
+
           </Card>
 
           <Card>
@@ -218,14 +226,19 @@ export const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              <Button onClick={() => navigate('/items')}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Item
-              </Button>
-              <Button onClick={() => navigate('/locations')} variant="secondary">
-                <Plus className="mr-2 h-4 w-4" />
-                New Location
-              </Button>
+              {user?.is_tenant_admin && (
+                <>
+                  <Button onClick={() => navigate('/items')}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Item
+                  </Button>
+                  <Button onClick={() => navigate('/locations')} variant="secondary">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Location
+                  </Button>
+                </>
+              )}
+
               <Button onClick={() => navigate('/stock')} variant="outline">
                 Manual Adjustment
               </Button>

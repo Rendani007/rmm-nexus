@@ -29,6 +29,11 @@ export const deleteItem = async (id: string) => {
   return res.data?.data;
 };
 
+export const bulkDeleteItems = async (ids: string[]) => {
+  const res = await api.post(`/inventory/items/bulk-delete`, { ids });
+  return res.data?.data;
+};
+
 export const showItem = async (id: string) => {
   const res = await api.get(`/inventory/items/${id}`);
   return res.data?.data;
@@ -40,9 +45,13 @@ export const stockForItem = async (id: string): Promise<StockSummary> => {
 };
 
 // Import/Export helpers
-export const importItems = async (file: File) => {
+export const importItems = async (file: File, params?: any) => {
   const formData = new FormData();
   formData.append('file', file);
+  
+  if (params?.department_id) {
+    formData.append('department_id', params.department_id);
+  }
 
   const res = await api.post('/inventory/import', formData, {
     headers: {
@@ -51,6 +60,7 @@ export const importItems = async (file: File) => {
   });
   return res.data;
 };
+
 
 export const getExportUrl = () => {
   // We need to use the baseURL from axios instance, but simplify:
@@ -84,9 +94,9 @@ export const downloadExport = async () => {
   }
 };
 
-export const downloadTemplate = async () => {
+export const downloadTemplate = async (params?: any) => {
   try {
-    const response = await api.get('/inventory/import/template', { responseType: 'blob' });
+    const response = await api.get('/inventory/import/template', { params, responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
@@ -99,3 +109,4 @@ export const downloadTemplate = async () => {
     throw e;
   }
 };
+

@@ -1,18 +1,22 @@
 import { z } from 'zod';
 
 export const itemSchema = z.object({
-  sku: z.string().min(1, 'SKU is required').max(50, 'SKU must be 50 characters or less'),
-  name: z.string().min(1, 'Name is required').max(255, 'Name must be 255 characters or less'),
+  sku: z.string().max(50, 'SKU must be 50 characters or less').optional(),
+  name: z.string().max(255, 'Name must be 255 characters or less').optional(),
   category: z.string().max(100, 'Category must be 100 characters or less').optional().or(z.literal('')),
-  uom: z.string().min(1, 'Unit of measure is required').max(20, 'UoM must be 20 characters or less'),
+  uom: z.string().max(20, 'UoM must be 20 characters or less').optional(),
   reorder_level: z.coerce.number().int().min(0, 'Reorder level must be 0 or greater').optional(),
   metadata: z.record(z.any()).optional(),
+  department_id: z.string().uuid().optional(),
 }).passthrough();
+
 
 export const locationSchema = z.object({
   code: z.string().min(1, 'Code is required').max(50, 'Code must be 50 characters or less'),
   name: z.string().min(1, 'Name is required').max(255, 'Name must be 255 characters or less'),
+  department_id: z.string().uuid().optional(),
 });
+
 
 export const stockInSchema = z.object({
   inventory_item_id: z.string().uuid('Invalid item'),

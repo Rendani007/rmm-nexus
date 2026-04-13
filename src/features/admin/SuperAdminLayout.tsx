@@ -6,6 +6,7 @@ import {
     LogOut,
     User,
     ShieldCheck,
+    ServerCrash,
 } from 'lucide-react';
 import {
     Sidebar,
@@ -36,7 +37,8 @@ import { toast } from '@/hooks/use-toast';
 const adminNavItems = [
     { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
     { title: 'Tenants', url: '/admin/tenants', icon: Building2 },
-    { title: 'Audit Logs', url: '/admin/audit-logs', icon: ShieldCheck },
+    { title: 'Audit Logs', url: '/admin/global-audit-logs', icon: ShieldCheck },
+    { title: 'System Health', url: '/admin/system-health', icon: ServerCrash },
 ];
 
 function AdminSidebar() {
