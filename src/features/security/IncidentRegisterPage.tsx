@@ -32,6 +32,7 @@ import { toast } from '@/hooks/use-toast';
 import { getIncidents, createIncident, updateIncident, deleteIncident } from '@/api/security';
 import type { Incident } from '@/types';
 import { format } from 'date-fns';
+import { Layout } from '@/components/Layout';
 
 export const IncidentRegisterPage = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -40,13 +41,14 @@ export const IncidentRegisterPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadIncidents = async () => {
     try {
       const data = await getIncidents();
       setIncidents(data);
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to load incidents' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We could not load the incident register. Please try again later.' });
     } finally {
       setLoading(false);
     }
@@ -83,8 +85,8 @@ export const IncidentRegisterPage = () => {
       }
       setDialogOpen(false);
       loadIncidents();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save incident' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We encountered a problem saving the incident. Please try again.' });
     } finally {
       setSubmitting(false);
     }
@@ -92,12 +94,15 @@ export const IncidentRegisterPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this incident record?')) return;
+    setDeletingId(id);
     try {
       await deleteIncident(id);
       toast({ title: 'Success', description: 'Incident deleted' });
       loadIncidents();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete incident' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We encountered a problem deleting the incident. Please try again.' });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -120,19 +125,20 @@ export const IncidentRegisterPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <ShieldAlert className="h-8 w-8 text-primary" />
-            Security Incident Register
-          </h1>
-          <p className="text-muted-foreground mt-1">Track and manage security incidents for compliance.</p>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <ShieldAlert className="h-8 w-8 text-primary shrink-0" />
+              <span>Security Incident Register</span>
+            </h1>
+            <p className="text-muted-foreground mt-1">Track and manage security incidents for compliance.</p>
+          </div>
+          <Button onClick={() => { setSelectedIncident(null); setDialogOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Report Incident
+          </Button>
         </div>
-        <Button onClick={() => { setSelectedIncident(null); setDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Report Incident
-        </Button>
-      </div>
 
       <div className="flex items-center gap-4 max-w-sm">
         <div className="relative flex-1">
@@ -146,16 +152,16 @@ export const IncidentRegisterPage = () => {
         </div>
       </div>
 
-      <div className="rounded-md border bg-card">
-        <Table>
+      <div className="rounded-md border bg-card overflow-x-auto pb-4">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead>Date Reported</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Severity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Reporter</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="whitespace-nowrap">Date Reported</TableHead>
+              <TableHead className="whitespace-nowrap">Title</TableHead>
+              <TableHead className="whitespace-nowrap">Severity</TableHead>
+              <TableHead className="whitespace-nowrap">Status</TableHead>
+              <TableHead className="whitespace-nowrap">Reporter</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -174,17 +180,17 @@ export const IncidentRegisterPage = () => {
             ) : (
               filteredIncidents.map((incident) => (
                 <TableRow key={incident.id}>
-                  <TableCell>{format(new Date(incident.reported_at), 'PPP')}</TableCell>
-                  <TableCell className="font-medium">{incident.title}</TableCell>
-                  <TableCell>{getSeverityBadge(incident.severity)}</TableCell>
-                  <TableCell>{getStatusBadge(incident.status)}</TableCell>
-                  <TableCell>{incident.reporter?.first_name} {incident.reporter?.last_name}</TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="whitespace-nowrap">{format(new Date(incident.reported_at), 'PPP')}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{incident.title}</TableCell>
+                  <TableCell className="whitespace-nowrap">{getSeverityBadge(incident.severity)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{getStatusBadge(incident.status)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{incident.reporter?.first_name} {incident.reporter?.last_name}</TableCell>
+                  <TableCell className="text-right space-x-2 whitespace-nowrap">
                     <Button variant="ghost" size="icon" onClick={() => { setSelectedIncident(incident); setDialogOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(incident.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(incident.id)} disabled={deletingId === incident.id}>
+                      {deletingId === incident.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -251,6 +257,7 @@ export const IncidentRegisterPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </Layout>
   );
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,7 @@ function normalizeItems(payload: unknown): InventoryItem[] {
 
 export const ItemsListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +67,21 @@ export const ItemsListPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [prefillBarcode, setPrefillBarcode] = useState<string | null>(null);
+  const [enrichedData, setEnrichedData] = useState<any>(null);
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    // Check if we navigated here from scanner with a prefilled barcode
+    const state = location.state as any;
+    if (state?.openCreateModal && state?.prefillBarcode) {
+        setPrefillBarcode(state.prefillBarcode);
+        setEnrichedData(state.enrichedData || null);
+        setFormOpen(true);
+        // Clear state so it doesn't reopen on refresh
+        navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     if (user?.is_tenant_admin) {
@@ -179,7 +194,7 @@ export const ItemsListPage = () => {
       toast({
         variant: 'destructive',
         title: 'Failed to delete item',
-        description: error?.response?.data?.message || 'An error occurred',
+        description: error?.response?.data?.message || 'We encountered a problem deleting the item. Please try again.',
       });
     } finally {
       setDeleting(false);
@@ -201,7 +216,7 @@ export const ItemsListPage = () => {
       toast({
         variant: 'destructive',
         title: 'Failed to delete items',
-        description: error?.response?.data?.message || 'An error occurred',
+        description: error?.response?.data?.message || 'We encountered a problem deleting the items. Please try again.',
       });
     } finally {
       setDeleting(false);
@@ -214,8 +229,8 @@ export const ItemsListPage = () => {
     try {
       await downloadExport();
       toast({ title: 'Export started', description: 'Your CSV file is downloading.' });
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Export failed' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Export failed', description: e?.response?.data?.message || 'We could not export the items at this time. Please try again.' });
     } finally {
       setExporting(false);
     }
@@ -260,7 +275,7 @@ export const ItemsListPage = () => {
               Attributes
             </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting}>
-              <Download className="mr-2 h-4 w-4" />
+              {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               {exporting ? 'Exporting...' : 'Export'}
             </Button>
             {filteredItems.length > 0 && (
@@ -315,18 +330,18 @@ export const ItemsListPage = () => {
         </div>
 
 
-        <div className="rounded-md border">
-          <Table>
+        <div className="rounded-md border overflow-x-auto pb-4">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 {customFields
                   .sort((a, b) => a.sort_order - b.sort_order)
                   .map((field) => (
-                    <TableHead key={field.id}>{field.label}</TableHead>
+                    <TableHead key={field.id} className="whitespace-nowrap">{field.label}</TableHead>
                   ))}
-                <TableHead>Stock</TableHead>
+                <TableHead className="whitespace-nowrap">Stock</TableHead>
 
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -389,16 +404,16 @@ export const ItemsListPage = () => {
                         return (
                           <TableCell
                             key={field.id}
-                            className={field.field_key === 'sku' ? 'font-medium' : ''}
+                            className={field.field_key === 'sku' ? 'font-medium whitespace-nowrap' : 'whitespace-nowrap'}
                           >
                             {displayContent}
                           </TableCell>
                         );
                       })}
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {item.stock_on_hand ?? 0}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"
@@ -440,6 +455,8 @@ export const ItemsListPage = () => {
         open={formOpen}
         item={selectedItem}
         onClose={handleFormClose}
+        prefillBarcode={prefillBarcode}
+        enrichedData={enrichedData}
       />
 
       <ImportItemsDialog

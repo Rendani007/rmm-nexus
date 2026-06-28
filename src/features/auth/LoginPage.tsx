@@ -27,13 +27,16 @@ export const LoginPage = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const handleSuccessfulAuth = (response: AuthLoginResp & { mfa_required?: boolean; mfa_token?: string }) => {
+  const handleSuccessfulAuth = (response: AuthLoginResp & { mfa_required?: boolean; mfa_token?: string }, slug?: string) => {
     if (response.mfa_required && response.mfa_token) {
       setMfaRequired(true);
       setMfaToken(response.mfa_token);
       
       // Temporarily set the MFA token so the verify-mfa call has authorization
       api.defaults.headers.common['Authorization'] = `Bearer ${response.mfa_token}`;
+      if (slug) {
+        api.defaults.headers.common['X-Tenant-Slug'] = slug;
+      }
       toast({ title: 'MFA Code Required', description: 'Please enter the 6-digit code from your authenticator app.' });
       return;
     }
@@ -45,6 +48,7 @@ export const LoginPage = () => {
     // set defaults immediately so the current tab uses them
     api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
     api.defaults.headers.common['X-Tenant-ID'] = response.tenant!.id;
+    api.defaults.headers.common['X-Tenant-Slug'] = response.tenant!.slug; // Also set slug globally
 
     // keep your existing store if you use it in UI
     setAuth(response.user!, response.tenant!, response.token!);
@@ -81,11 +85,11 @@ export const LoginPage = () => {
 
       const payload = { ...data, tenant_slug: slug };
       const response = await login(payload);
-      handleSuccessfulAuth(response);
+      handleSuccessfulAuth(response, slug);
 
     } catch (error: any) {
       console.error("Login error details:", error);
-      const mainMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Invalid credentials';
+      const mainMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'We could not log you in with the provided credentials. Please try again.';
       let description = mainMessage;
       const validationErrors = error?.response?.data?.errors || error?.response?.data?.details;
 
@@ -118,7 +122,7 @@ export const LoginPage = () => {
       toast({
         variant: 'destructive',
         title: 'MFA Failed',
-        description: error?.response?.data?.error || 'Invalid code',
+        description: error?.response?.data?.message || error?.response?.data?.error || 'We could not verify your code. Please try again.',
       });
     } finally {
       setLoading(false);

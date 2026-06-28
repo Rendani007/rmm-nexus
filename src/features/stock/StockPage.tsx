@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { stockIn, stockOut, stockTransfer, listStockMovements } from '@/api/stock';
+import { stockIn, stockOut, stockTransfer, listStockMovements, getAvailableBatches, getStockBalance } from '@/api/stock';
 import { listItems } from '@/api/items';
 import { listLocations } from '@/api/locations';
 import { useAuthStore } from '@/features/auth/useAuthStore';
@@ -63,7 +63,7 @@ export const StockPage = () => {
         toast({
           variant: 'destructive',
           title: 'Failed to load data',
-          description: error?.response?.data?.message || 'An error occurred',
+          description: error?.response?.data?.message || 'We could not load the stock data. Please try again later.',
         });
         setItems([]);
         setLocations([]);
@@ -219,7 +219,7 @@ function StockInForm({
       toast({ title: 'Stock received', description: 'Stock in transaction recorded successfully.' });
       reset();
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'An error occurred';
+      const message = error?.response?.data?.message || error?.response?.data?.error || 'We encountered a problem recording the stock in. Please try again.';
       setError(message);
       toast({ variant: 'destructive', title: 'Failed to record stock in', description: message });
     } finally {
@@ -293,6 +293,19 @@ function StockInForm({
             </div>
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="in-batch">Batch Number</Label>
+              <Input id="in-batch" placeholder="Scan or type batch" {...register('batch_number')} disabled={loading} />
+              {errors.batch_number && <p className="text-sm text-destructive">{errors.batch_number.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="in-expiry">Expiry Date</Label>
+              <Input id="in-expiry" type="date" {...register('expiry_date')} disabled={loading} />
+              {errors.expiry_date && <p className="text-sm text-destructive">{errors.expiry_date.message}</p>}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="in-note">Note</Label>
             <Textarea id="in-note" placeholder="Optional notes" {...register('note')} disabled={loading} rows={3} />
@@ -321,13 +334,28 @@ function StockOutForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
+  const [batches, setBatches] = useState<{batch_number: string, available: number}[]>([]);
+  const [localAvailable, setLocalAvailable] = useState<number | null>(null);
 
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<StockOutBody>({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<StockOutBody>({
     resolver: zodResolver(stockOutSchema),
   });
 
   const selectedItem = items.find(i => String(i.id) === selectedItemId);
-  const availableStock = selectedItem?.stock_on_hand ?? null;
+  const globalAvailableStock = selectedItem?.stock_on_hand ?? null;
+
+  const watchItemId = watch('inventory_item_id');
+  const watchLocId = watch('from_location_id');
+
+  useEffect(() => {
+    if (watchItemId && watchLocId) {
+      getAvailableBatches(watchItemId, watchLocId).then(setBatches).catch(() => setBatches([]));
+      getStockBalance(watchItemId, watchLocId).then(setLocalAvailable).catch(() => setLocalAvailable(null));
+    } else {
+      setBatches([]);
+      setLocalAvailable(null);
+    }
+  }, [watchItemId, watchLocId]);
 
   const onSubmit = async (data: StockOutBody) => {
     setLoading(true);
@@ -350,7 +378,7 @@ function StockOutForm({
       setSelectedItemId('');
     } catch (error: any) {
       const respData = error?.response?.data;
-      let message = respData?.message || respData?.error || 'An error occurred';
+      let message = respData?.message || respData?.error || 'We encountered a problem recording the stock out. Please try again.';
       if (respData?.available !== undefined) {
         message = `Insufficient stock: only ${respData.available} available, you requested ${respData.requested}`;
       }
@@ -394,11 +422,15 @@ function StockOutForm({
                     ))}
                 </SelectContent>
               </Select>
-              {availableStock !== null && (
-                <p className={`text-sm font-medium ${availableStock <= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
-                  Available: {availableStock} units
+              {watchLocId && localAvailable !== null ? (
+                <p className={`text-sm font-medium ${localAvailable <= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                  Available in Location: {localAvailable} units
                 </p>
-              )}
+              ) : globalAvailableStock !== null ? (
+                <p className={`text-sm font-medium ${globalAvailableStock <= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                  Available Globally: {globalAvailableStock} units
+                </p>
+              ) : null}
               {errors.inventory_item_id && <p className="text-sm text-destructive">{errors.inventory_item_id.message}</p>}
             </div>
 
@@ -433,6 +465,26 @@ function StockOutForm({
               <Input id="out-reference" placeholder="Auto-generated if empty" {...register('reference')} disabled={loading} />
               {errors.reference && <p className="text-sm text-destructive">{errors.reference.message}</p>}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="out-batch">Batch Number</Label>
+            <Select
+              onValueChange={(value) => setValue('batch_number', value)}
+              disabled={loadingData || loading || batches.length === 0}
+            >
+              <SelectTrigger id="out-batch">
+                <SelectValue placeholder={batches.length > 0 ? "Select batch" : "No batches available"} />
+              </SelectTrigger>
+              <SelectContent>
+                {batches.map((b) => (
+                  <SelectItem key={b.batch_number} value={b.batch_number}>
+                    {b.batch_number} (Qty: {b.available})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.batch_number && <p className="text-sm text-destructive">{errors.batch_number.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -477,7 +529,7 @@ function StockTransferForm({
       toast({ title: 'Stock transferred', description: 'Stock transfer transaction recorded successfully.' });
       reset();
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'An error occurred';
+      const message = error?.response?.data?.message || error?.response?.data?.error || 'We encountered a problem recording the stock transfer. Please try again.';
       setError(message);
       toast({ variant: 'destructive', title: 'Failed to record stock transfer', description: message });
     } finally {
@@ -575,6 +627,12 @@ function StockTransferForm({
               <Input id="transfer-reference" placeholder="TR-12345" {...register('reference')} disabled={loading} />
               {errors.reference && <p className="text-sm text-destructive">{errors.reference.message}</p>}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="transfer-batch">Batch Number</Label>
+            <Input id="transfer-batch" placeholder="Scan or type batch" {...register('batch_number')} disabled={loading} />
+            {errors.batch_number && <p className="text-sm text-destructive">{errors.batch_number.message}</p>}
           </div>
 
           <div className="space-y-2">

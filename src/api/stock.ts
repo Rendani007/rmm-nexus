@@ -63,6 +63,11 @@ export const getStockBalance = async (itemId: string, locationId: string): Promi
   return res.data?.data?.available ?? 0;
 };
 
+export const getAvailableBatches = async (itemId: string, locationId: string): Promise<{batch_number: string, available: number}[]> => {
+  const res = await api.get('/inventory/stock/batches', { params: { item_id: itemId, location_id: locationId } });
+  return res.data?.data ?? [];
+};
+
 /** Returns a map of { [locationId]: available } for a given item across all provided locations */
 export const getStockBalancesForItem = async (
   itemId: string,

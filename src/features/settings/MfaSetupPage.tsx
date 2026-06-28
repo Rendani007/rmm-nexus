@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { api } from '@/api/axios';
 import { useAuthStore } from '@/features/auth/useAuthStore';
 import { QRCodeSVG } from 'qrcode.react';
+import { Layout } from '@/components/Layout';
 
 const mfaEnableSchema = z.object({
   code: z.string().length(6, 'Code must be exactly 6 digits').regex(/^\d+$/, 'Code must contain only numbers'),
@@ -109,7 +110,8 @@ export const MfaSetupPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto p-4 md:p-8">
+    <Layout>
+      <div className="space-y-6 max-w-2xl mx-auto p-4 md:p-8">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
@@ -215,6 +217,7 @@ export const MfaSetupPage = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </Layout>
   );
 };

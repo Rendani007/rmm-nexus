@@ -27,6 +27,7 @@ import { PaymentCancelPage } from "./features/billing/PaymentCancelPage";
 
 import { StockApprovals } from "./pages/StockApprovals";
 import NotFound from "./pages/NotFound";
+import { ScanPage } from "./pages/ScanPage";
 import { SuperAdminGuard } from "./features/auth/SuperAdminGuard";
 import { SuperAdminDashboard } from "./features/admin/SuperAdminDashboard";
 import { TenantsListPage } from "./features/admin/TenantsListPage";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/items" element={<ItemsListPage />} />
             <Route path="/locations" element={<LocationsListPage />} />
+            <Route path="/scan" element={<ScanPage />} />
             <Route path="/stock" element={<StockPage />} />
             <Route path="/stock/request" element={<RequestTransfer />} />
             <Route path="/stock/approvals" element={<StockApprovals />} />

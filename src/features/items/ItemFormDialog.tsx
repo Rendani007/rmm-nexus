@@ -31,10 +31,11 @@ import { useAuthStore } from '@/features/auth/useAuthStore';
 import type { Department } from '@/types';
 
 interface ItemFormDialogProps {
-
   open: boolean;
   item?: InventoryItem | null;
   onClose: (reload?: boolean) => void;
+  prefillBarcode?: string | null;
+  enrichedData?: any;
 }
 
 type ItemFormData = {
@@ -44,7 +45,7 @@ type ItemFormData = {
 };
 
 
-export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => {
+export const ItemFormDialog = ({ open, item, onClose, prefillBarcode, enrichedData }: ItemFormDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
   const isEdit = !!item;
@@ -136,10 +137,31 @@ export const ItemFormDialog = ({ open, item, onClose }: ItemFormDialogProps) => 
         } else {
            formValues[`custom_${f.field_key}`] = '';
         }
+        
+        // Prefill barcode if passed from scanner
+        if (prefillBarcode && (f.field_key === 'barcode' || f.field_key === 'sku')) {
+            formValues[`custom_${f.field_key}`] = prefillBarcode;
+        }
+
+        // Prefill enriched data
+        if (enrichedData) {
+            if (f.field_key === 'name' && enrichedData.name) {
+                formValues[`custom_${f.field_key}`] = enrichedData.name;
+            }
+            if (f.field_key === 'category' && enrichedData.category) {
+                formValues[`custom_${f.field_key}`] = enrichedData.category;
+            }
+            if ((f.field_key === 'description' || f.field_key === 'notes') && enrichedData.description) {
+                formValues[`custom_${f.field_key}`] = enrichedData.description;
+            }
+            if (f.field_key === 'brand' && enrichedData.brand) {
+                formValues[`custom_${f.field_key}`] = enrichedData.brand;
+            }
+        }
       });
       reset(formValues);
     }
-  }, [open, item, reset, customFields, selectedDepartmentId]);
+  }, [open, item, reset, customFields, selectedDepartmentId, prefillBarcode, enrichedData]);
 
   const onSubmit = async (data: ItemFormData) => {
     setLoading(true);

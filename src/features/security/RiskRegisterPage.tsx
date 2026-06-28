@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, Pencil, Trash2, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Layout } from '@/components/Layout';
 import {
   Table,
   TableBody,
@@ -42,6 +43,7 @@ export const RiskRegisterPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -49,8 +51,8 @@ export const RiskRegisterPage = () => {
       setRisks(risksData);
       const uList = (usersData as any).data || usersData;
       setUsers(uList as User[]);
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to load risk register' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We could not load the risk register. Please try again later.' });
     } finally {
       setLoading(false);
     }
@@ -89,8 +91,8 @@ export const RiskRegisterPage = () => {
       }
       setDialogOpen(false);
       loadData();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save risk' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We encountered a problem saving the risk entry. Please try again.' });
     } finally {
       setSubmitting(false);
     }
@@ -98,12 +100,15 @@ export const RiskRegisterPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this risk entry?')) return;
+    setDeletingId(id);
     try {
       await deleteRisk(id);
       toast({ title: 'Success', description: 'Risk entry removed' });
       loadData();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete risk' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We encountered a problem deleting the risk entry. Please try again.' });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -116,7 +121,8 @@ export const RiskRegisterPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <Layout>
+      <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -187,8 +193,8 @@ export const RiskRegisterPage = () => {
                     <Button variant="ghost" size="icon" onClick={() => { setSelectedRisk(risk); setDialogOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(risk.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(risk.id)} disabled={deletingId === risk.id}>
+                      {deletingId === risk.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -277,6 +283,7 @@ export const RiskRegisterPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </Layout>
   );
 };

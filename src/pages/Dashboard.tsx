@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, MapPin, Plus, TrendingUp, AlertCircle, ArrowDown, ArrowUp, ArrowLeftRight, Building2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/Layout';
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AiAlertsWidget } from '@/components/AiAlertsWidget';
 
 function normalizeLocations(payload: unknown): InventoryLocation[] {
   if (Array.isArray(payload)) return payload as InventoryLocation[];
@@ -217,6 +219,9 @@ export const Dashboard = () => {
           </Card>
         </div>
 
+        {/* AI Predictive Alerts Widget */}
+        <AiAlertsWidget />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="h-full">
             <CardHeader>
@@ -268,26 +273,19 @@ export const Dashboard = () => {
               ) : locations.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No locations found.</p>
               ) : (
-                <div className="space-y-4">
-                  {locations.slice(0, 5).map((loc) => (
-                    <div key={loc.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-secondary text-secondary-foreground">
-                          <MapPin className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{loc.name}</p>
-                          <p className="text-xs text-muted-foreground">{loc.code}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-sm">
-                          {loc.total_items ?? 0}
-                        </span>
-                        <p className="text-xs text-muted-foreground">items</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="h-[250px] w-full mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={locations.slice(0, 5)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground)/0.2)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                      <Tooltip 
+                        cursor={{fill: 'hsl(var(--muted)/0.5)'}}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--background))' }}
+                      />
+                      <Bar dataKey="total_items" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Total Items" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               )}
             </CardContent>
