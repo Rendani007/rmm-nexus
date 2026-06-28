@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   ClipboardCheck,
   CreditCard,
+  ScanLine,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -257,6 +258,38 @@ function AppSidebar() {
   );
 }
 
+const MobileBottomNav = () => {
+  const { pathname } = useLocation();
+  const bottomNavItems = [
+    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+    { title: 'Items', url: '/items', icon: Package },
+    { title: 'Scan', url: '/scan', icon: ScanLine },
+    { title: 'Stock', url: '/stock', icon: ArrowLeftRight },
+    { title: 'Inbox', url: '/stock/approvals', icon: ClipboardCheck },
+  ];
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-background border-t h-16 px-2 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
+      {bottomNavItems.map(item => {
+        const isActive = pathname === item.url || (item.url !== '/' && pathname.startsWith(item.url));
+        return (
+          <NavLink 
+            key={item.title} 
+            to={item.url} 
+            className={cn(
+              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors min-h-[44px] min-w-[44px]",
+              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+            <span className="text-[10px] font-medium">{item.title}</span>
+          </NavLink>
+        );
+      })}
+    </div>
+  );
+};
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -283,19 +316,19 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-[100dvh] w-full">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
+        <div className="flex flex-1 flex-col relative min-w-0">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4">
             <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <h1 className="text-lg font-semibold">{tenant?.name}</h1>
+              <SidebarTrigger className="min-h-[44px] min-w-[44px]" />
+              <h1 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">{tenant?.name}</h1>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="min-h-[44px]">
                   <User className="mr-2 h-4 w-4" />
-                  {user?.first_name} {user?.last_name}
+                  <span className="hidden sm:inline">{user?.first_name} {user?.last_name}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -307,28 +340,24 @@ export const Layout = ({ children }: LayoutProps) => {
                     <p className="text-xs leading-none text-muted-foreground">
                       {user?.email}
                     </p>
-                    {user?.job_title && (
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.job_title}
-                      </p>
-                    )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/change-password')}>
+                <DropdownMenuItem onClick={() => navigate('/change-password')} className="min-h-[44px]">
                   Change Password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={handleLogout} className="min-h-[44px]">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</main>
         </div>
       </div>
+      <MobileBottomNav />
     </SidebarProvider>
   );
 };

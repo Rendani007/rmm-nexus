@@ -196,42 +196,44 @@ export const CustomFieldsSettingsPage = () => {
     return (
         <Layout>
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-start gap-3">
+                        <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate(-1)}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div>
                             <h2 className="text-3xl font-bold tracking-tight">Inventory Attributes</h2>
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                                 Define custom fields for your inventory items (e.g., Serial Number, Expiry Date).
                             </p>
                         </div>
                     </div>
 
-                    {user?.is_tenant_admin && (
-                        <div className="flex items-center gap-2">
-                            <Label className="text-muted-foreground whitespace-nowrap text-sm">Manage fields for:</Label>
-                            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Select Scope" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="__all__">All Departments</SelectItem>
-                                    <SelectItem value="global">Global (No Department)</SelectItem>
-                                    {departments.map(d => (
-                                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {user?.is_tenant_admin && (
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Label className="text-muted-foreground whitespace-nowrap text-sm">Manage fields for:</Label>
+                                <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
+                                    <SelectTrigger className="w-[180px] sm:w-[200px]">
+                                        <SelectValue placeholder="Select Scope" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__all__">All Departments</SelectItem>
+                                        <SelectItem value="global">Global (No Department)</SelectItem>
+                                        {departments.map(d => (
+                                            <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
-                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button 
                             variant="destructive" 
                             onClick={() => setIsDeleteAllOpen(true)} 
                             disabled={fields.length === 0 || loading}
+                            className="flex-1 sm:flex-none"
                         >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete All
                         </Button>
@@ -244,7 +246,7 @@ export const CustomFieldsSettingsPage = () => {
                             }
                         }}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setEditingField(null)}>
+                                <Button onClick={() => setEditingField(null)} className="flex-1 sm:flex-none">
                                     <Plus className="mr-2 h-4 w-4" /> Add Field
                                 </Button>
                             </DialogTrigger>
@@ -285,7 +287,7 @@ export const CustomFieldsSettingsPage = () => {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="type">Data Type</Label>
-                                    <Select onValueChange={(val: CustomFieldType) => setValue('type', val)} defaultValue="text">
+                                    <Select onValueChange={(val: CustomFieldType) => setValue('type', val)} value={watch('type') || 'text'}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select type" />
                                         </SelectTrigger>
@@ -321,7 +323,8 @@ export const CustomFieldsSettingsPage = () => {
                                 </DialogFooter>
                             </form>
                         </DialogContent>
-                    </Dialog>
+                        </Dialog>
+                        </div>
                     </div>
                 </div>
 
@@ -336,62 +339,64 @@ export const CustomFieldsSettingsPage = () => {
                         ) : fields.length === 0 ? (
                             <div className="text-center p-8 text-muted-foreground">No custom fields defined yet.</div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Label</TableHead>
-                                        <TableHead>Key</TableHead>
-                                        <TableHead>Scope</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Required</TableHead>
-                                        <TableHead>Order</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {fields.map((field) => (
-                                        <TableRow key={field.id}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    {field.label}
-                                                    {field.is_system && (
-                                                        <Badge variant="secondary" className="text-[10px] h-4 px-1">System</Badge>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground text-sm font-mono">{field.field_key}</TableCell>
-                                            <TableCell>
-                                                {field.department_id 
-                                                    ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Department')
-                                                    : <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-50">Global</Badge>
-                                                }
-                                            </TableCell>
-                                            <TableCell className="capitalize">{field.type}</TableCell>
-                                            <TableCell>{field.is_required ? 'Yes' : 'No'}</TableCell>
-                                            <TableCell>{field.sort_order}</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => {
-                                                        setEditingField(field);
-                                                        setIsDialogOpen(true);
-                                                    }}>
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setFieldToDelete(field.id)}
-                                                        className="text-destructive hover:text-destructive disabled:opacity-30"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-
-                                                </div>
-                                            </TableCell>
+                            <div className="rounded-md border overflow-x-auto pb-4">
+                                <Table className="min-w-full">
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-nowrap">Label</TableHead>
+                                            <TableHead className="whitespace-nowrap">Key</TableHead>
+                                            <TableHead className="whitespace-nowrap">Scope</TableHead>
+                                            <TableHead className="whitespace-nowrap">Type</TableHead>
+                                            <TableHead className="whitespace-nowrap">Required</TableHead>
+                                            <TableHead className="whitespace-nowrap">Order</TableHead>
+                                            <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {fields.map((field) => (
+                                            <TableRow key={field.id}>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        {field.label}
+                                                        {field.is_system && (
+                                                            <Badge variant="secondary" className="text-[10px] h-4 px-1">System</Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm font-mono whitespace-nowrap">{field.field_key}</TableCell>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {field.department_id 
+                                                        ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Department')
+                                                        : <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-50">Global</Badge>
+                                                    }
+                                                </TableCell>
+                                                <TableCell className="capitalize whitespace-nowrap">{field.type}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{field.is_required ? 'Yes' : 'No'}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{field.sort_order}</TableCell>
+                                                <TableCell className="text-right whitespace-nowrap">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="sm" onClick={() => {
+                                                            setEditingField(field);
+                                                            setIsDialogOpen(true);
+                                                        }}>
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setFieldToDelete(field.id)}
+                                                            className="text-destructive hover:text-destructive disabled:opacity-30"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         )}
                     </CardContent>
                 </Card>

@@ -24,6 +24,8 @@ export const stockInSchema = z.object({
   qty: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
   reference: z.string().max(100, 'Reference must be 100 characters or less').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note must be 1000 characters or less').optional().or(z.literal('')),
+  batch_number: z.string().max(100, 'Batch number must be 100 characters or less').optional().or(z.literal('')),
+  expiry_date: z.string().optional().or(z.literal('')),
 });
 
 export const stockOutSchema = z.object({
@@ -32,6 +34,7 @@ export const stockOutSchema = z.object({
   qty: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
   reference: z.string().max(100, 'Reference must be 100 characters or less').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note must be 1000 characters or less').optional().or(z.literal('')),
+  batch_number: z.string().max(100, 'Batch number must be 100 characters or less').optional().or(z.literal('')),
 });
 
 export const stockTransferSchema = z.object({
@@ -41,6 +44,7 @@ export const stockTransferSchema = z.object({
   qty: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
   reference: z.string().max(100, 'Reference must be 100 characters or less').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note must be 1000 characters or less').optional().or(z.literal('')),
+  batch_number: z.string().max(100, 'Batch number must be 100 characters or less').optional().or(z.literal('')),
 }).refine((data) => data.from_location_id !== data.to_location_id, {
   message: 'From and To locations must be different',
   path: ['to_location_id'],

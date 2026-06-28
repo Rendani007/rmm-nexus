@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { MoreHorizontal, Play, Pause, CreditCard, ShieldAlert } from 'lucide-react';
+import { MoreHorizontal, Play, Pause, CreditCard, ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const TenantsListPage = () => {
@@ -40,6 +40,7 @@ export const TenantsListPage = () => {
     const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
     const { setAuth } = useAuthStore();
     const navigate = useNavigate();
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     const loadTenants = async () => {
         setLoading(true);
@@ -54,8 +55,9 @@ export const TenantsListPage = () => {
             } else {
                 setTenants([]);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to load tenants', error);
+            toast({ variant: 'destructive', title: 'Error', description: error?.response?.data?.message || 'We could not load the tenants list. Please refresh the page.' });
         } finally {
             setLoading(false);
         }
@@ -66,6 +68,7 @@ export const TenantsListPage = () => {
     }, []);
 
     const handleImpersonate = async (tenant: any) => {
+        setActionLoading(`impersonate-${tenant.id}`);
         try {
             const res = await impersonateTenant(tenant.id);
             const { token, user, tenant: targetTenant } = res;
@@ -86,13 +89,16 @@ export const TenantsListPage = () => {
             });
 
             navigate('/');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast({ variant: "destructive", title: "Impersonation Failed", description: "Could not login as tenant admin." });
+            toast({ variant: "destructive", title: "Impersonation Failed", description: error?.response?.data?.message || "We could not log you in as a tenant admin at this time. Please try again later." });
+        } finally {
+            setActionLoading(null);
         }
     };
 
     const handleStatusToggle = async (tenant: any) => {
+        setActionLoading(`status-${tenant.id}`);
         try {
             await updateTenant(tenant.id, { is_active: !tenant.is_active });
             toast({
@@ -100,16 +106,19 @@ export const TenantsListPage = () => {
                 description: `Successfully ${tenant.is_active ? 'deactivated' : 'activated'} ${tenant.name}`,
             });
             loadTenants(); // Refresh list
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Update Failed',
-                description: 'Could not update tenant status',
+                description: error?.response?.data?.message || 'We encountered a problem updating the tenant status. Please try again.',
             });
+        } finally {
+            setActionLoading(null);
         }
     };
 
     const handlePlanChange = async (tenant: any, newPlan: string) => {
+        setActionLoading(`plan-${tenant.id}`);
         try {
             await updateTenant(tenant.id, { plan: newPlan });
             toast({
@@ -117,12 +126,14 @@ export const TenantsListPage = () => {
                 description: `${tenant.name} is now on ${newPlan} plan`,
             });
             loadTenants();
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Update Failed',
-                description: 'Could not update tenant plan',
+                description: error?.response?.data?.message || 'We encountered a problem updating the tenant plan. Please try again.',
             });
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -267,7 +278,9 @@ export const TenantsListPage = () => {
                                         variant={selectedTenant.is_active ? "destructive" : "default"} 
                                         size="sm"
                                         onClick={() => handleStatusToggle(selectedTenant)}
+                                        disabled={actionLoading === `status-${selectedTenant.id}`}
                                     >
+                                        {actionLoading === `status-${selectedTenant.id}` && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {selectedTenant.is_active ? "Suspend Access" : "Restore Access"}
                                     </Button>
                                 </div>
@@ -299,8 +312,8 @@ export const TenantsListPage = () => {
                                 <div className="pt-6">
                                     <h3 className="text-lg font-semibold text-red-600 mb-4 border-b pb-2">Admin Actions</h3>
                                     <div className="flex flex-col gap-3">
-                                        <Button variant="outline" className="w-full justify-start" onClick={() => handleImpersonate(selectedTenant)}>
-                                            <CreditCard className="mr-2 h-4 w-4" /> Impersonate Tenant Admin
+                                        <Button variant="outline" className="w-full justify-start" onClick={() => handleImpersonate(selectedTenant)} disabled={actionLoading === `impersonate-${selectedTenant.id}`}>
+                                            {actionLoading === `impersonate-${selectedTenant.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />} Impersonate Tenant Admin
                                         </Button>
                                     </div>
                                 </div>

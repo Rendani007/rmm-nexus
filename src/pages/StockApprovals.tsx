@@ -34,7 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuthStore } from "@/features/auth/useAuthStore";
-import { PackageOpen, Send } from "lucide-react";
+import { PackageOpen, Send, Loader2 } from "lucide-react";
 
 export const StockApprovals = () => {
     const { toast } = useToast();
@@ -54,6 +54,9 @@ export const StockApprovals = () => {
 
     // Reject specific
     const [requestToReject, setRequestToReject] = useState<StockTransferRequest | null>(null);
+
+    const [approving, setApproving] = useState(false);
+    const [rejecting, setRejecting] = useState(false);
 
     const refresh = async () => {
         setLoading(true);
@@ -112,13 +115,16 @@ export const StockApprovals = () => {
 
     const confirmApprove = async () => {
         if (!selectedRequest || !targetLocationId) return;
+        setApproving(true);
         try {
             await approveTransfer(selectedRequest.id, { to_location_id: targetLocationId });
             toast({ title: "Approved", description: "Stock transfer approved successfully." });
             setIsApproveOpen(false);
             refresh();
-        } catch (e) {
-            toast({ variant: "destructive", title: "Error", description: "Failed to approve transfer." });
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Error", description: e?.response?.data?.message || "We encountered a problem approving the transfer. Please try again." });
+        } finally {
+            setApproving(false);
         }
     };
 
@@ -132,14 +138,17 @@ export const StockApprovals = () => {
         setIncoming(prev => prev.filter(r => r.id !== reqId));
         setInTransit(prev => prev.filter(r => r.id !== reqId));
 
+        setRejecting(true);
         try {
             await rejectTransfer(reqId);
             toast({ title: "Rejected", description: "Stock transfer rejected and stock refunded." });
             refresh();
-        } catch (e) {
+        } catch (e: any) {
             setIncoming(previousIncoming);
             setInTransit(previousInTransit);
-            toast({ variant: "destructive", title: "Error", description: "Failed to reject transfer." });
+            toast({ variant: "destructive", title: "Error", description: e?.response?.data?.message || "We encountered a problem rejecting the transfer. Please try again." });
+        } finally {
+            setRejecting(false);
         }
     };
 
@@ -329,8 +338,11 @@ export const StockApprovals = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Cancel</Button>
-                        <Button onClick={confirmApprove} disabled={!targetLocationId}>Confirm Approval</Button>
+                        <Button variant="outline" onClick={() => setIsApproveOpen(false)} disabled={approving}>Cancel</Button>
+                        <Button onClick={confirmApprove} disabled={!targetLocationId || approving}>
+                            {approving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Confirm Approval
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -345,11 +357,13 @@ export const StockApprovals = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={rejecting}>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={confirmReject}
+                            disabled={rejecting}
                             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                         >
+                            {rejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Reject Transfer
                         </AlertDialogAction>
                     </AlertDialogFooter>

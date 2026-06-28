@@ -11,6 +11,7 @@ import {
     UserX,
     Pencil,
     ShieldAlert,
+    Loader2,
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -72,8 +73,8 @@ export const UsersListPage = () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             toast({ title: 'User deactivated successfully' });
         },
-        onError: () => {
-            toast({ variant: 'destructive', title: 'Failed to deactivate user' });
+        onError: (error: any) => {
+            toast({ variant: 'destructive', title: 'Failed to deactivate user', description: error?.response?.data?.message || 'We encountered a problem deactivating the user. Please try again.' });
         },
     });
 
@@ -82,8 +83,8 @@ export const UsersListPage = () => {
         onSuccess: () => {
             toast({ title: 'Sessions revoked successfully' });
         },
-        onError: () => {
-            toast({ variant: 'destructive', title: 'Failed to revoke sessions' });
+        onError: (error: any) => {
+            toast({ variant: 'destructive', title: 'Failed to revoke sessions', description: error?.response?.data?.message || 'We encountered a problem revoking the sessions. Please try again.' });
         },
     });
 
@@ -296,8 +297,9 @@ export const UsersListPage = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                        <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} disabled={deleteMutation.isPending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                            {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Deactivate User
                         </AlertDialogAction>
                     </AlertDialogFooter>

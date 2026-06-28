@@ -44,6 +44,28 @@ export const stockForItem = async (id: string): Promise<StockSummary> => {
   return res.data?.data;
 };
 
+export const scanItem = async (barcode: string): Promise<InventoryItem | null> => {
+  try {
+    const res = await api.get(`/inventory/items/scan/${encodeURIComponent(barcode)}`);
+    return res.data?.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const lookupExternalBarcode = async (barcode: string): Promise<{name?: string, category?: string, description?: string, brand?: string} | null> => {
+  try {
+    const res = await api.get(`/inventory/items/lookup-external/${encodeURIComponent(barcode)}`);
+    return res.data?.data;
+  } catch (error: any) {
+    console.error("External lookup failed", error);
+    return null;
+  }
+};
+
 // Import/Export helpers
 export const importItems = async (file: File, params?: any) => {
   const formData = new FormData();

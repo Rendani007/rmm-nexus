@@ -89,6 +89,8 @@ export interface StockInBody {
   qty: number;
   reference?: string;
   note?: string;
+  batch_number?: string;
+  expiry_date?: string;
 }
 
 export interface StockOutBody {
@@ -97,6 +99,7 @@ export interface StockOutBody {
   qty: number;
   reference?: string;
   note?: string;
+  batch_number?: string;
 }
 
 export interface StockTransferBody {
@@ -106,6 +109,7 @@ export interface StockTransferBody {
   qty: number;
   reference?: string;
   note?: string;
+  batch_number?: string;
 }
 
 export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean' | 'select';

@@ -106,7 +106,7 @@ export const RequestTransfer = () => {
         } catch (err: any) {
             const apiError = err?.response?.data?.error
                 || err?.response?.data?.message
-                || "Failed to create request.";
+                || "We encountered a problem creating the transfer request. Please try again.";
             toast({ variant: "destructive", title: "Transfer Failed", description: apiError });
         } finally {
             setSubmitting(false);
