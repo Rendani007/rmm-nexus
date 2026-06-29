@@ -292,9 +292,10 @@ const MobileBottomNav = () => {
 
 interface LayoutProps {
   children: ReactNode;
+  noPadding?: boolean;
 }
 
-export const Layout = ({ children }: LayoutProps) => {
+export const Layout = ({ children, noPadding = false }: LayoutProps) => {
   useIdleTimer();
   const navigate = useNavigate();
   const { user, tenant, clearAuth } = useAuthStore();
@@ -316,10 +317,10 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-[100dvh] w-full">
+      <div className="flex min-h-[100dvh] w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col relative min-w-0">
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 shadow-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="min-h-[44px] min-w-[44px]" />
               <h1 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">{tenant?.name}</h1>
@@ -354,7 +355,7 @@ export const Layout = ({ children }: LayoutProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</main>
+          <main className={cn("flex-1", noPadding ? "p-0 pb-16 md:pb-0" : "p-4 pb-24 md:p-6 md:pb-6")}>{children}</main>
         </div>
       </div>
       <MobileBottomNav />
