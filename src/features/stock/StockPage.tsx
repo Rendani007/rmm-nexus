@@ -21,6 +21,8 @@ import { useAuthStore } from '@/features/auth/useAuthStore';
 import { stockInSchema, stockOutSchema, stockTransferSchema } from '@/lib/validation';
 import type { InventoryItem, InventoryLocation, StockInBody, StockOutBody, StockTransferBody } from '@/types';
 import { format } from 'date-fns';
+import { useLocation } from 'react-router-dom';
+import type { GS1Data } from '@/lib/gs1Parser';
 
 /** Why: backend may wrap arrays; normalize avoids .map crashes */
 function normalizeArray<T>(payload: unknown): T[] {
@@ -46,6 +48,10 @@ export const StockPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuthStore();
   const isAdmin = user?.is_tenant_admin || user?.is_super_admin;
+  
+  const locState = useLocation();
+  const stateData = locState.state as { tab?: string, item?: InventoryItem, gs1Data?: GS1Data } | null;
+  const defaultTab = stateData?.tab || 'in';
 
   useEffect(() => {
     const loadData = async () => {
@@ -96,7 +102,7 @@ export const StockPage = () => {
           <p className="text-muted-foreground">Record stock in, out, and transfer transactions</p>
         </div>
 
-        <Tabs defaultValue="in" className="w-full" onValueChange={(val) => val === 'history' && loadHistory()}>
+        <Tabs defaultValue={defaultTab} className="w-full" onValueChange={(val) => val === 'history' && loadHistory()}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="in"><ArrowDown className="mr-2 h-4 w-4" />Stock In</TabsTrigger>
             <TabsTrigger value="out"><ArrowUp className="mr-2 h-4 w-4" />Stock Out</TabsTrigger>
@@ -105,7 +111,13 @@ export const StockPage = () => {
           </TabsList>
 
           <TabsContent value="in" className="mt-6">
-            <StockInForm items={items} locations={locations} loading={loadingData} />
+            <StockInForm 
+              items={items} 
+              locations={locations} 
+              loading={loadingData} 
+              prefillItem={stateData?.item} 
+              prefillGs1={stateData?.gs1Data} 
+            />
           </TabsContent>
 
           <TabsContent value="out" className="mt-6">
@@ -199,10 +211,14 @@ function StockInForm({
   items,
   locations,
   loading: loadingData,
+  prefillItem,
+  prefillGs1
 }: {
   items: InventoryItem[];
   locations: InventoryLocation[];
   loading: boolean;
+  prefillItem?: InventoryItem;
+  prefillGs1?: GS1Data;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -210,6 +226,21 @@ function StockInForm({
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<StockInBody>({
     resolver: zodResolver(stockInSchema),
   });
+
+  useEffect(() => {
+    if (prefillItem) setValue('inventory_item_id', String(prefillItem.id));
+    if (prefillGs1) {
+       if (prefillGs1.batch) setValue('batch_number', prefillGs1.batch);
+       if (prefillGs1.quantity) setValue('qty', prefillGs1.quantity);
+       if (prefillGs1.expiry) {
+           const yy = prefillGs1.expiry.substring(0, 2);
+           const mm = prefillGs1.expiry.substring(2, 4);
+           const dd = prefillGs1.expiry.substring(4, 6);
+           const year = parseInt(yy, 10) > 50 ? `19${yy}` : `20${yy}`;
+           setValue('expiry_date', `${year}-${mm}-${dd}`);
+       }
+    }
+  }, [prefillItem, prefillGs1, setValue]);
 
   const onSubmit = async (data: StockInBody) => {
     setLoading(true);
@@ -246,6 +277,7 @@ function StockInForm({
               <Select
                 onValueChange={(value) => setValue('inventory_item_id', value)}
                 disabled={loadingData || loading || !hasItems}
+                defaultValue={prefillItem ? String(prefillItem.id) : undefined}
               >
                 <SelectTrigger id="in-item"><SelectValue placeholder="Select item" /></SelectTrigger>
                 <SelectContent>

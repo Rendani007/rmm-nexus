@@ -17,17 +17,22 @@ import { stockForItem } from '@/api/items';
 import { getCustomFields } from '@/api/customFields';
 import type { InventoryItem, StockSummary, CustomFieldDefinition } from '@/types';
 import { format } from 'date-fns';
+import type { GS1Data } from '@/lib/gs1Parser';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface ItemStockDrawerProps {
   open: boolean;
   item: InventoryItem | null;
+  gs1Data?: GS1Data | null;
   onClose: () => void;
 }
 
-export const ItemStockDrawer = ({ open, item, onClose }: ItemStockDrawerProps) => {
+export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawerProps) => {
   const [stock, setStock] = useState<StockSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
+  const navigate = useNavigate();
 
   // History state
   const [movements, setMovements] = useState<any[]>([]);
@@ -144,6 +149,27 @@ export const ItemStockDrawer = ({ open, item, onClose }: ItemStockDrawerProps) =
                       })}
                     </div>
                   </div>
+
+                  {/* GS1 Supply Chain Data Banner */}
+                  {gs1Data && (gs1Data.batch || gs1Data.quantity || gs1Data.expiry) && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                        <Package className="h-4 w-4" /> Supply Chain Barcode Detected
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {gs1Data.batch && <div><span className="text-muted-foreground block text-xs uppercase">Batch</span><span className="font-medium">{gs1Data.batch}</span></div>}
+                        {gs1Data.expiry && <div><span className="text-muted-foreground block text-xs uppercase">Expiry</span><span className="font-medium">{gs1Data.expiry}</span></div>}
+                        {gs1Data.quantity && <div><span className="text-muted-foreground block text-xs uppercase">Quantity</span><span className="font-medium">{gs1Data.quantity}</span></div>}
+                      </div>
+                      
+                      <Button 
+                        className="w-full mt-2" 
+                        onClick={() => navigate('/stock', { state: { item, tab: 'in', gs1Data } })}
+                      >
+                        Receive Scanned Stock
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="rounded-lg border bg-card p-4">
                     <div className="flex items-center justify-between">
