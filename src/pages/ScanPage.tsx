@@ -9,6 +9,7 @@ import { ItemStockDrawer } from "@/features/items/ItemStockDrawer";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { parseGS1, type GS1Data } from "@/lib/gs1Parser";
 
 // Audio Feedback
 const playChime = (success: boolean) => {
@@ -56,6 +57,7 @@ export const ScanPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
   const [enrichedData, setEnrichedData] = useState<any>(null);
+  const [scannedGs1Data, setScannedGs1Data] = useState<GS1Data | null>(null);
   const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   // Settings & Controls
@@ -149,10 +151,19 @@ export const ScanPage = () => {
     setLoading(true);
     setNotFoundBarcode(null);
     setEnrichedData(null);
+    setScannedGs1Data(null);
     setScanStatus('idle');
 
     try {
-      const item = await scanItem(decodedText);
+      const gs1Parsed = parseGS1(decodedText);
+      const searchBarcode = gs1Parsed?.gtin || decodedText;
+      
+      if (gs1Parsed) {
+          setScannedGs1Data(gs1Parsed);
+          toast.success("Parsed Supply Chain Barcode", { duration: 2000 });
+      }
+
+      const item = await scanItem(searchBarcode);
       if (item) {
         setScanStatus('success');
         triggerVibrate(50); // short burst
@@ -160,25 +171,25 @@ export const ScanPage = () => {
         setScannedItem(item);
         
         // Add to history
-        setRecentScans(prev => [{ barcode: decodedText, success: true, timestamp: new Date(), itemName: item.name }, ...prev].slice(0, 10));
+        setRecentScans(prev => [{ barcode: searchBarcode, success: true, timestamp: new Date(), itemName: item.name }, ...prev].slice(0, 10));
         
         setTimeout(() => { setDrawerOpen(true); }, 300);
       } else {
         setScanStatus('error');
         triggerVibrate([100, 50, 100]); // double burst
         playChime(false);
-        setNotFoundBarcode(decodedText);
+        setNotFoundBarcode(searchBarcode);
         
         toast.info("Item not found locally. Searching global databases...", { duration: 2000 });
-        const externalData = await lookupExternalBarcode(decodedText);
+        const externalData = await lookupExternalBarcode(searchBarcode);
         
         if (externalData && externalData.name) {
           setEnrichedData(externalData);
-          setRecentScans(prev => [{ barcode: decodedText, success: false, timestamp: new Date(), itemName: externalData.name }, ...prev].slice(0, 10));
+          setRecentScans(prev => [{ barcode: searchBarcode, success: false, timestamp: new Date(), itemName: externalData.name }, ...prev].slice(0, 10));
           toast.success(`Found product details for ${externalData.name}`);
         } else {
-          setRecentScans(prev => [{ barcode: decodedText, success: false, timestamp: new Date(), itemName: "Unknown Item" }, ...prev].slice(0, 10));
-          toast.error(`Item with barcode ${decodedText} not found locally or globally.`);
+          setRecentScans(prev => [{ barcode: searchBarcode, success: false, timestamp: new Date(), itemName: "Unknown Item" }, ...prev].slice(0, 10));
+          toast.error(`Item with barcode ${searchBarcode} not found locally or globally.`);
         }
       }
     } catch (error) {
@@ -200,6 +211,7 @@ export const ScanPage = () => {
     setScannedItem(null);
     setNotFoundBarcode(null);
     setEnrichedData(null);
+    setScannedGs1Data(null);
     setScanStatus('idle');
     setDrawerOpen(false);
     startScanner();
@@ -211,7 +223,7 @@ export const ScanPage = () => {
 
   return (
     <Layout noPadding>
-      <div className="relative w-full h-[calc(100vh-64px)] sm:h-[calc(100vh-56px)] bg-black overflow-hidden flex flex-col">
+      <div className="relative w-full h-[100dvh] bg-black flex flex-col">
         
         {/* Full-bleed scanner target div */}
         <div id="reader" className="w-full h-full absolute inset-0 object-cover z-0"></div>
@@ -308,7 +320,7 @@ export const ScanPage = () => {
             </p>
 
             {/* Flashlight FAB */}
-            <div className="absolute bottom-12 z-20 pointer-events-auto">
+            <div className="absolute bottom-24 z-20 pointer-events-auto">
               <Button 
                 variant="secondary" 
                 size="lg" 
@@ -380,7 +392,8 @@ export const ScanPage = () => {
 
       <ItemStockDrawer 
         open={drawerOpen} 
-        item={scannedItem} 
+        item={scannedItem}
+        gs1Data={scannedGs1Data} 
         onClose={() => {
             setDrawerOpen(false);
             handleResumeScanning();
