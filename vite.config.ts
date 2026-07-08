@@ -19,28 +19,24 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'app-icon.png'],
       manifest: {
-        name: 'RMM',
+        name: 'RMM System',
         short_name: 'RMM',
         description: 'Resource Modular Management',
-        theme_color: '#ffffff',
+        theme_color: '#115e59',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
+            src: 'app-icon.png',
             sizes: '512x512',
             type: 'image/png'
           }
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 10485760,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
