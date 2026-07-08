@@ -1,0 +1,1 @@
+{"name": "RMM System", "short_name": "RMM", "start_url": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#115e59", "icons": [{"src": "/app-icon.png", "sizes": "512x512", "type": "image/png"}]}
