@@ -127,8 +127,8 @@ function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <Building2 className="mr-2 h-4 w-4" />
+          <SidebarGroupLabel className="flex items-center gap-2">
+            <img src="/app-icon.png" alt="Logo" className="h-5 w-5 rounded-sm object-cover" />
             {!collapsed && 'RMM System'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
