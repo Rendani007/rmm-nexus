@@ -23,6 +23,7 @@ const US_INDUSTRIES = [
     { value: 'construction', label: 'Construction' },
     { value: 'utilities', label: 'Utilities' },
     { value: 'financial_services', label: 'Financial Services' },
+    { value: 'other', label: 'Other' },
 ];
 
 type RegisterBusinessForm = z.infer<typeof registerBusinessSchema>;
@@ -33,6 +34,8 @@ export const RegisterPage = () => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [selectedIndustry, setSelectedIndustry] = useState('');
+    const [customIndustry, setCustomIndustry] = useState('');
 
     const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterBusinessForm>({
         resolver: zodResolver(registerBusinessSchema),
@@ -41,7 +44,11 @@ export const RegisterPage = () => {
     const onSubmit = async (data: RegisterBusinessForm) => {
         setLoading(true);
         try {
-            const response = await registerBusiness(data);
+            const payload = { ...data };
+            if (payload.industry === 'other') {
+                payload.industry = customIndustry;
+            }
+            const response = await registerBusiness(payload);
 
             // Persist auth
             localStorage.setItem('auth_token', response.token);
@@ -85,8 +92,8 @@ export const RegisterPage = () => {
                         <Button variant="ghost" size="sm" onClick={() => navigate('/login')} className="gap-2">
                             <ArrowLeft className="h-4 w-4" /> Back to Login
                         </Button>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-                            <Building2 className="h-6 w-6 text-primary-foreground" />
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg">
+                            <img src="/app-icon.png" alt="RMM Logo" className="h-full w-full object-cover" />
                         </div>
                         <div className="w-[100px]"></div> {/* Spacer for centering logo */}
                     </div>
@@ -107,7 +114,7 @@ export const RegisterPage = () => {
 
                             <div className="space-y-2">
                                 <Label htmlFor="industry">Industry</Label>
-                                <Select onValueChange={(val) => setValue('industry', val)} disabled={loading}>
+                                <Select onValueChange={(val) => { setValue('industry', val); setSelectedIndustry(val); }} disabled={loading}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Industry" />
                                     </SelectTrigger>
@@ -117,6 +124,15 @@ export const RegisterPage = () => {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {selectedIndustry === 'other' && (
+                                    <Input 
+                                        placeholder="Type your industry" 
+                                        value={customIndustry} 
+                                        onChange={(e) => setCustomIndustry(e.target.value)} 
+                                        disabled={loading} 
+                                        className="mt-2"
+                                    />
+                                )}
                                 {errors.industry && <p className="text-sm text-destructive">{errors.industry.message}</p>}
                             </div>
                         </div>
