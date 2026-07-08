@@ -8,6 +8,7 @@ export interface Tenant {
   enabled_modules: string[];
   plan: string;
   primary_color?: string;
+  trial_ends_at?: string;
 }
 
 export interface User {
