@@ -35,6 +35,7 @@ export const stockOutSchema = z.object({
   qty: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
   reference: z.string().max(100, 'Reference must be 100 characters or less').optional().or(z.literal('')),
   note: z.string().max(1000, 'Note must be 1000 characters or less').optional().or(z.literal('')),
+  destination: z.string().max(255, 'Destination must be 255 characters or less').optional().or(z.literal('')),
   batch_number: z.string().max(100, 'Batch number must be 100 characters or less').optional().or(z.literal('')),
 });
 
