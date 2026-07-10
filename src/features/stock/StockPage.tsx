@@ -173,7 +173,7 @@ export const StockPage = () => {
                                 </TableCell>
                                 <TableCell>{m.qty}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{m.from?.name || '-'}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground">{m.to?.name || '-'}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{m.to?.name || m.destination || '-'}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{m.user?.first_name || '-'}</TableCell>
                               </TableRow>
                             ))
@@ -497,6 +497,12 @@ function StockOutForm({
               <Input id="out-reference" placeholder="Auto-generated if empty" {...register('reference')} disabled={loading} />
               {errors.reference && <p className="text-sm text-destructive">{errors.reference.message}</p>}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="out-destination">Destination / Where to?</Label>
+            <Input id="out-destination" placeholder="e.g., Client name, Site location, Job card" {...register('destination')} disabled={loading} />
+            {errors.destination && <p className="text-sm text-destructive">{errors.destination.message}</p>}
           </div>
 
           <div className="space-y-2">
