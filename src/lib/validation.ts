@@ -8,6 +8,7 @@ export const itemSchema = z.object({
   reorder_level: z.coerce.number().int().min(0, 'Reorder level must be 0 or greater').optional(),
   metadata: z.record(z.any()).optional(),
   department_id: z.string().uuid().optional(),
+  location_id: z.string().uuid().optional(),
 }).passthrough();
 
 
