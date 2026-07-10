@@ -4,7 +4,7 @@ export const itemSchema = z.object({
   sku: z.string().max(50, 'SKU must be 50 characters or less').optional(),
   name: z.string().max(255, 'Name must be 255 characters or less').optional(),
   category: z.string().max(100, 'Category must be 100 characters or less').optional().or(z.literal('')),
-  uom: z.string().max(20, 'UoM must be 20 characters or less').optional(),
+  uom: z.string().max(255, 'UoM must be 255 characters or less').optional(),
   reorder_level: z.coerce.number().int().min(0, 'Reorder level must be 0 or greater').optional(),
   metadata: z.record(z.any()).optional(),
   department_id: z.string().uuid().optional(),
