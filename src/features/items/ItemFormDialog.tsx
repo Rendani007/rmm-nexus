@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { createItem, updateItem } from '@/api/items';
 import { getCustomFields } from '@/api/customFields';
+import { listLocations } from '@/api/locations';
 import { itemSchema } from '@/lib/validation';
 import type { InventoryItem, CustomFieldDefinition } from '@/types';
 import {
@@ -64,6 +65,31 @@ export const ItemFormDialog = ({ open, item, onClose, prefillBarcode, enrichedDa
   const { user } = useAuthStore();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [locations, setLocations] = useState<any[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+
+  // Fetch locations
+  useEffect(() => {
+    if (open) {
+      listLocations().then(setLocations).catch(console.error);
+    }
+  }, [open]);
+
+  const filteredLocations = selectedDepartmentId 
+    ? locations.filter(loc => !loc.department_id || loc.department_id === selectedDepartmentId)
+    : locations;
+
+  // Sync selected location
+  useEffect(() => {
+    if (filteredLocations.length > 0) {
+      const exists = filteredLocations.some(l => l.id === selectedLocationId);
+      if (!exists) {
+        setSelectedLocationId(filteredLocations[0].id);
+      }
+    } else {
+      setSelectedLocationId('');
+    }
+  }, [filteredLocations, selectedLocationId]);
 
   useEffect(() => {
     if (user?.is_tenant_admin) {
@@ -169,6 +195,7 @@ export const ItemFormDialog = ({ open, item, onClose, prefillBarcode, enrichedDa
       const payload: any = {
         department_id: selectedDepartmentId || undefined,
         stock_on_hand: data.stock_on_hand !== undefined ? Number(data.stock_on_hand) : undefined,
+        location_id: selectedLocationId || undefined,
         metadata: {},
       };
 
@@ -343,6 +370,26 @@ export const ItemFormDialog = ({ open, item, onClose, prefillBarcode, enrichedDa
                     placeholder="0"
                   />
                 </div>
+
+                {filteredLocations.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="location_id">Stock Location</Label>
+                    <Select 
+                      value={selectedLocationId} 
+                      onValueChange={setSelectedLocationId}
+                      disabled={loading}
+                    >
+                      <SelectTrigger id="location_id">
+                        <SelectValue placeholder="Select Location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredLocations.map(loc => (
+                          <SelectItem key={loc.id} value={String(loc.id)}>{loc.name} ({loc.code})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
           )}
 
