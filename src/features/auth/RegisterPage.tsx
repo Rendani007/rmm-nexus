@@ -6,6 +6,7 @@ import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
@@ -36,6 +37,7 @@ export const RegisterPage = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [selectedIndustry, setSelectedIndustry] = useState('');
     const [customIndustry, setCustomIndustry] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterBusinessForm>({
         resolver: zodResolver(registerBusinessSchema),
@@ -218,7 +220,30 @@ export const RegisterPage = () => {
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full mt-6" disabled={loading}>
+                        <div className="flex items-start space-x-2 mt-4">
+                            <Checkbox 
+                                id="terms" 
+                                checked={acceptedTerms}
+                                onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                                disabled={loading}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <label
+                                    htmlFor="terms"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Accept terms and conditions
+                                </label>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                                    By registering, you agree to our{' '}
+                                    <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms of Service</a>,{' '}
+                                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy Policy</a>, and{' '}
+                                    <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Refund Policy</a>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <Button type="submit" className="w-full mt-6" disabled={loading || !acceptedTerms}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Create Business Account
                         </Button>
