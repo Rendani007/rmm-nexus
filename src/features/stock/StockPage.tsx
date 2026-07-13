@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, ArrowDown, ArrowUp, ArrowLeftRight, Clock, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowDown, ArrowUp, ArrowLeftRight, Clock, ArrowRight, Trash2 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { stockIn, stockOut, stockTransfer, listStockMovements, getAvailableBatches, getStockBalance } from '@/api/stock';
+import { stockIn, stockOut, stockTransfer, listStockMovements, getAvailableBatches, getStockBalance, deleteStockMovement } from '@/api/stock';
 import { listItems } from '@/api/items';
 import { listLocations } from '@/api/locations';
 import { useAuthStore } from '@/features/auth/useAuthStore';
@@ -78,7 +78,11 @@ export const StockPage = () => {
       }
     };
     loadData();
-  }, []);
+
+    if (defaultTab === 'history') {
+      loadHistory();
+    }
+  }, [defaultTab]);
 
   const loadHistory = async (pageNum = 1) => {
     setHistoryLoading(true);
@@ -91,6 +95,17 @@ export const StockPage = () => {
       console.error("Failed to load history", e);
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  const handleDeleteMovement = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this stock movement? This action will dynamically recalculate stock totals and cannot be undone.')) return;
+    try {
+      await deleteStockMovement(id);
+      toast({ title: 'Movement Deleted', description: 'Stock movement was successfully deleted and logged.' });
+      loadHistory(page);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Deletion Failed', description: e.response?.data?.message || 'Could not delete movement.' });
     }
   };
 
@@ -150,6 +165,7 @@ export const StockPage = () => {
                             <TableHead>From</TableHead>
                             <TableHead>To</TableHead>
                             {isAdmin && <TableHead>User</TableHead>}
+                            {isAdmin && <TableHead className="w-[50px]"></TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -175,6 +191,13 @@ export const StockPage = () => {
                                 <TableCell className="text-xs text-muted-foreground">{m.from?.name || '-'}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{m.to?.name || m.destination || '-'}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{m.user?.first_name || '-'}</TableCell>
+                                {isAdmin && (
+                                  <TableCell>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteMovement(m.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                )}
                               </TableRow>
                             ))
                           )}
