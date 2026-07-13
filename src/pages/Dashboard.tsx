@@ -297,7 +297,7 @@ export const Dashboard = () => {
                 <CardTitle>Recent Stock Movements</CardTitle>
                 <CardDescription>Latest inventory changes</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/stock')}>View All</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/stock', { state: { tab: 'history' } })}>View All</Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

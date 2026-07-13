@@ -32,6 +32,11 @@ export const listStockMovements = async (params: { inventory_item_id?: string; p
   return res.data; // returns paginated object { data: [], current_page: ... }
 };
 
+export const deleteStockMovement = async (id: string) => {
+  const res = await api.delete(`/inventory/stock/movements/${id}`);
+  return res.data;
+};
+
 // Approval Workflow
 export const listTransferRequests = async (params: { status?: string; page?: number } = {}): Promise<StockTransferRequest[]> => {
   const res = await api.get('/inventory/stock-transfers', { params });
