@@ -7,8 +7,8 @@ export const itemSchema = z.object({
   uom: z.string().max(255, 'UoM must be 255 characters or less').optional(),
   reorder_level: z.coerce.number().int().min(0, 'Reorder level must be 0 or greater').optional(),
   metadata: z.record(z.any()).optional(),
-  department_id: z.string().uuid().optional(),
-  location_id: z.string().uuid().optional(),
+  department_id: z.string().uuid('Invalid uuid').optional().or(z.literal('')),
+  location_id: z.string().uuid('Invalid uuid').optional().or(z.literal('')),
 }).passthrough();
 
 
