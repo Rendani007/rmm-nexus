@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,6 +29,8 @@ import { listItems, deleteItem, downloadExport, bulkDeleteItems } from '@/api/it
 import { ItemFormDialog } from './ItemFormDialog';
 import { ItemStockDrawer } from './ItemStockDrawer';
 import { ImportItemsDialog } from './ImportItemsDialog';
+import { BarcodeGeneratorModal } from '../inventory/components/BarcodeGeneratorModal';
+import { UpgradeModal } from '@/components/ui/UpgradeModal';
 import { getCustomFields } from '@/api/customFields';
 import { getDepartments } from '@/api/departments';
 import { useAuthStore } from '@/features/auth/useAuthStore';
@@ -51,10 +53,12 @@ function normalizeItems(payload: unknown): InventoryItem[] {
 export const ItemsListPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialSearch = queryParams.get('search') || '';
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [formOpen, setFormOpen] = useState(false);
   const [stockDrawerOpen, setStockDrawerOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -69,7 +73,19 @@ export const ItemsListPage = () => {
   const [exporting, setExporting] = useState(false);
   const [prefillBarcode, setPrefillBarcode] = useState<string | null>(null);
   const [enrichedData, setEnrichedData] = useState<any>(null);
-  const { user } = useAuthStore();
+  const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [generatorItems, setGeneratorItems] = useState<InventoryItem[]>([]);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { user, tenant } = useAuthStore();
+
+  const handlePrintRequest = (itemsToPrint: InventoryItem[]) => {
+    if (tenant?.plan === 'starter') {
+      setUpgradeModalOpen(true);
+    } else {
+      setGeneratorItems(itemsToPrint);
+      setGeneratorOpen(true);
+    }
+  };
 
   useEffect(() => {
     // Check if we navigated here from scanner with a prefilled barcode
@@ -82,6 +98,14 @@ export const ItemsListPage = () => {
         navigate(location.pathname, { replace: true });
     }
   }, [location, navigate]);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const newSearch = queryParams.get('search');
+    if (newSearch !== null) {
+      setSearch(newSearch);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (user?.is_tenant_admin) {
@@ -279,10 +303,16 @@ export const ItemsListPage = () => {
               {exporting ? 'Exporting...' : 'Export'}
             </Button>
             {filteredItems.length > 0 && (
-              <Button variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Visible
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => handlePrintRequest(filteredItems)}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Visible
+                </Button>
+                <Button variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Visible
+                </Button>
+              </>
             )}
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
@@ -418,6 +448,13 @@ export const ItemsListPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => handlePrintRequest([item])}
+                        >
+                          <Printer className="h-4 w-4 text-slate-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleViewStock(item)}
                         >
                           <Eye className="h-4 w-4" />
@@ -465,6 +502,18 @@ export const ItemsListPage = () => {
         onClose={handleImportClose}
       />
 
+      <BarcodeGeneratorModal 
+        open={generatorOpen}
+        items={generatorItems}
+        onClose={() => setGeneratorOpen(false)}
+      />
+
+      <UpgradeModal 
+        open={upgradeModalOpen} 
+        onOpenChange={setUpgradeModalOpen} 
+        title="Upgrade to Professional"
+        description="Barcode printing and hardware scanner support are premium features designed to scale your warehouse operations. Upgrade your plan to unlock these and more."
+      />
 
       <ItemStockDrawer
         open={stockDrawerOpen}
@@ -518,6 +567,14 @@ export const ItemsListPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <BarcodeGeneratorModal 
+        isOpen={generatorOpen} 
+        onClose={() => {
+          setGeneratorOpen(false);
+          setGeneratorItems([]);
+        }} 
+        items={generatorItems} 
+      />
     </Layout>
   );
 };

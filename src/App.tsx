@@ -34,6 +34,9 @@ import { TenantsListPage } from "./features/admin/TenantsListPage";
 import { SystemHealthPage } from "./features/admin/SystemHealthPage";
 import { AuditLogsPage } from "./features/admin/AuditLogsPage";
 
+import { PublicItemPage } from "./pages/PublicItemPage";
+import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -45,6 +48,7 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/p/:tenant_id/:item_id" element={<PublicItemPage />} />
           <Route element={<AuthGuard />}>
 
             <Route path="/" element={<Dashboard />} />
@@ -55,6 +59,8 @@ const App = () => (
             <Route path="/stock/request" element={<RequestTransfer />} />
             <Route path="/stock/approvals" element={<StockApprovals />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/profile" element={<ProfileSettingsPage />} />
+            <Route path="/profile/security" element={<MfaSetupPage />} />
             <Route path="/admin/settings/attributes" element={<CustomFieldsSettingsPage />} />
             <Route path="/admin/settings/security" element={<MfaSetupPage />} />
             <Route path="/admin/audit-logs" element={<TenantAuditLogsPage />} />
