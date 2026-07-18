@@ -6,17 +6,23 @@ const unwrap = <T,>(p: any): T => (p && typeof p === 'object' && 'data' in p ? (
 export interface AdminStats {
     total_tenants: number;
     active_tenants: number;
-    total_users: number;
     recent_tenants: any[];
     mrr: number;
     arr: number;
+    new_mrr: number;
     active_subscriptions: number;
     plan_distribution: { plan_name: string; count: number }[];
     revenue_chart: { month: string; revenue: number }[];
+    arpu: number;
+    churn_rate: number;
+    ltv: number;
+    total_global_items: number;
+    total_global_movements: number;
+    total_global_users: number;
 }
 
-export const getAdminStats = async () => {
-    const res = await api.get('/admin/stats');
+export const getAdminStats = async (period: string = 'all_time') => {
+    const res = await api.get(`/admin/stats?period=${period}`);
     return unwrap<AdminStats>(res.data);
 };
 

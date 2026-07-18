@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Loader2, KeyRound, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { Layout } from '@/components/Layout';
 import { changePassword } from '@/api/auth';
 import { changePasswordSchema } from '@/lib/validation';
 
@@ -61,21 +62,34 @@ export const ChangePasswordPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <KeyRound className="h-6 w-6 text-primary-foreground" />
-            </div>
+    <Layout>
+      <div className="max-w-2xl mx-auto space-y-6 pt-8">
+        <div className="flex items-center gap-4 mb-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Change Password</h1>
+            <p className="text-muted-foreground mt-1">
+              Ensure your account is using a long, random password to stay secure.
+            </p>
           </div>
-          <CardTitle className="text-2xl text-center">Change Password</CardTitle>
-          <CardDescription className="text-center">
-            Enter your current password and choose a new one
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        </div>
+
+        <Card className="w-full">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <KeyRound className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-center text-2xl font-bold">Change Password</CardTitle>
+            <CardDescription className="text-center">
+              Update your account password. You will be logged out of all other devices.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current_password">Current Password</Label>
               <div className="relative">
@@ -181,6 +195,7 @@ export const ChangePasswordPage = () => {
           </form>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </Layout>
   );
 };

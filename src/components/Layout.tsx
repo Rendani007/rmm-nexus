@@ -45,6 +45,7 @@ import { toast } from '@/hooks/use-toast';
 import { getPendingTransferCount } from '@/api/stock';
 import { useIdleTimer } from '@/hooks/useIdleTimer';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -323,12 +324,43 @@ export const Layout = ({ children, noPadding = false }: LayoutProps) => {
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 shadow-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="min-h-[44px] min-w-[44px]" />
-              <h1 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">{tenant?.name}</h1>
+              <h1 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none hidden md:block">{tenant?.name}</h1>
             </div>
+
+            <div className="flex-1 max-w-md px-4 hidden sm:block">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const query = fd.get('q');
+                if (query) {
+                  navigate(`/items?search=${encodeURIComponent(query.toString())}`);
+                }
+              }}>
+                <div className="relative">
+                  <ScanLine className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    name="q"
+                    placeholder="Quick scan or search SKU..." 
+                    className="pl-8 bg-muted/50 h-9 border-muted-foreground/20 focus-visible:ring-1" 
+                    autoComplete="off"
+                    autoFocus
+                  />
+                </div>
+              </form>
+            </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="min-h-[44px]">
-                  <User className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm" className="min-h-[44px] px-2">
+                  {user?.avatar_path ? (
+                    <img 
+                      src={`${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/api\/v1\/?$/, '')}/storage/${user.avatar_path}`} 
+                      alt="Avatar" 
+                      className="mr-2 h-6 w-6 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <User className="mr-2 h-4 w-4" />
+                  )}
                   <span className="hidden sm:inline">{user?.first_name} {user?.last_name}</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -344,8 +376,24 @@ export const Layout = ({ children, noPadding = false }: LayoutProps) => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  Account
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate('/profile')} className="min-h-[44px]">
+                  My Profile
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  Security
+                </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => navigate('/change-password')} className="min-h-[44px]">
                   Change Password
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/profile/security')} className="min-h-[44px]">
+                  Two-Factor Auth (MFA)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="min-h-[44px]">
