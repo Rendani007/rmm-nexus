@@ -36,7 +36,7 @@ export const BarcodeGeneratorModal = ({ isOpen, onClose, items }: BarcodeGenerat
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     pageStyle: `
       @page {
         size: auto;
