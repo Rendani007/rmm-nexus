@@ -30,7 +30,8 @@ export const PublicItemPage = () => {
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/v1/public/${tenant_id}/items/${item_id}`);
+        const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
+        const response = await axios.get(`${baseUrl}/public/${tenant_id}/items/${item_id}`);
         setData(response.data);
       } catch (err: any) {
         setError(err?.response?.data?.error || 'Item not found or unavailable.');
@@ -53,7 +54,8 @@ export const PublicItemPage = () => {
     );
   }
 
-  if (error || !data) {
+  // Safe destructure check
+  if (error || !data || !data.tenant || !data.item) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-red-100">
@@ -111,7 +113,7 @@ export const PublicItemPage = () => {
             </div>
 
             {/* Custom Public Fields */}
-            {item.metadata && Object.keys(item.metadata).length > 0 && (
+            {item.metadata && typeof item.metadata === 'object' && Object.keys(item.metadata).length > 0 && (
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <h3 className="text-sm font-semibold text-slate-900 flex items-center">
                   Product Details
