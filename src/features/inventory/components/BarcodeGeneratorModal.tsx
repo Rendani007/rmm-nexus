@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Printer } from 'lucide-react';
 import { InventoryItem } from '@/api/stock';
+import { useAuthStore } from '@/features/auth/useAuthStore';
 
 interface BarcodeGeneratorModalProps {
   isOpen: boolean;
@@ -50,6 +51,8 @@ export const BarcodeGeneratorModal = ({ isOpen, onClose, items }: BarcodeGenerat
     `,
   });
 
+  const { tenant } = useAuthStore();
+
   const getInternalUrl = (item: InventoryItem) => {
     const origin = window.location.origin;
     return `${origin}/inventory?sku=${encodeURIComponent(item.sku)}`;
@@ -57,7 +60,7 @@ export const BarcodeGeneratorModal = ({ isOpen, onClose, items }: BarcodeGenerat
 
   const getPublicUrl = (item: InventoryItem) => {
     const origin = window.location.origin;
-    return `${origin}/p/${item.tenant_id}/${item.id}`;
+    return `${origin}/p/${tenant?.id}/${item.id}`;
   };
 
   if (!isOpen || items.length === 0) return null;
