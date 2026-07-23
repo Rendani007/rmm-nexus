@@ -77,8 +77,8 @@ export const PublicItemPage = () => {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center justify-center text-center space-y-2 mb-8">
-          <div className="h-16 w-16 bg-white rounded-2xl shadow-sm border flex items-center justify-center mb-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
+          <div className="h-16 w-16 bg-white rounded-2xl shadow-sm border flex items-center justify-center mb-2 p-2 overflow-hidden">
+            <img src="/rmm-trans-1.png" alt="RMM Logo" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{tenant.name}</h1>
           {tenant.industry && (
