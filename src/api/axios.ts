@@ -43,6 +43,16 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
+    if (status === 402 && error.response?.data?.trial_expired) {
+      window.location.href = "/trial-expired";
+    }
+
+    if (status === 403 && error.response?.data?.requires_upgrade) {
+      window.dispatchEvent(new CustomEvent('requires_upgrade', { 
+        detail: error.response.data 
+      }));
+    }
+
     return Promise.reject(error);
   }
 );

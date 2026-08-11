@@ -57,7 +57,7 @@ export const RegisterPage = () => {
             localStorage.setItem('tenant', JSON.stringify(response.tenant)); // FIXED: Store full object
 
             api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
-            api.defaults.headers.common['X-Tenant-ID'] = response.tenant.id;
+            api.defaults.headers.common['X-Tenant-Slug'] = response.tenant.slug;
 
             setAuth(response.user, response.tenant, response.token);
 
@@ -65,6 +65,43 @@ export const RegisterPage = () => {
                 title: 'Registration Successful',
                 description: `Welcome to RMM, ${response.user.first_name}! Your business account is ready.`,
             });
+
+            // Check if they came from the marketing site with a plan selection
+            const params = new URLSearchParams(window.location.search);
+            const plan = params.get('plan');
+            
+            if (plan) {
+                try {
+                    const checkoutPayload: any = { plan_slug: plan };
+                    
+                    if (plan === 'custom') {
+                        checkoutPayload.users = parseInt(params.get('users') || '0', 10);
+                        checkoutPayload.locations = parseInt(params.get('locations') || '0', 10);
+                        checkoutPayload.api_access = params.get('api_access') === 'true';
+                        checkoutPayload.advanced_scanning = params.get('advanced_scanning') === 'true';
+                        checkoutPayload.risk_management = params.get('risk_management') === 'true';
+                    }
+                    
+                    toast({
+                        title: 'Redirecting to Checkout...',
+                        description: 'Please wait while we set up your secure payment session.',
+                    });
+
+                    const checkoutRes = await api.post('/billing/checkout', checkoutPayload);
+                    
+                    if (checkoutRes.data?.url) {
+                        window.location.href = checkoutRes.data.url;
+                        return; // Stop execution, browser is redirecting
+                    }
+                } catch (checkoutError) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Checkout Initialization Failed',
+                        description: 'Could not start payment. Please go to Settings > Billing in your dashboard to complete your subscription.',
+                    });
+                }
+            }
+
             navigate('/');
         } catch (error: any) {
             // Handle "Email already exists" or generic errors

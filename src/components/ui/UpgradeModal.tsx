@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Rocket, X, Check, Loader2 } from 'lucide-react';
+import { CreditCard, Rocket, X, Check, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/api/axios';
 import { toast } from '@/hooks/use-toast';
@@ -11,7 +11,7 @@ interface UpgradeModalProps {
   onClose: () => void;
   title?: string;
   description?: string;
-  recommendedPlan?: 'professional' | 'enterprise';
+  recommendedPlan?: 'professional' | 'enterprise' | 'custom';
 }
 
 export function UpgradeModal({ 
@@ -27,12 +27,14 @@ export function UpgradeModal({
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      // Create a Paystack checkout session
       const response = await api.post('/billing/checkout', {
         plan_slug: recommendedPlan
       });
       
-      if (response.data?.authorization_url) {
+      if (response.data?.action === 'contact_sales') {
+        window.location.href = "mailto:sales@resourcemodular.com";
+        onClose();
+      } else if (response.data?.authorization_url) {
         window.location.href = response.data.authorization_url;
       }
     } catch (error) {
@@ -43,6 +45,33 @@ export function UpgradeModal({
       });
       setLoading(false);
     }
+  };
+
+  const planPrices: Record<string, string> = {
+    professional: 'R799',
+    enterprise: 'R1,999',
+    custom: 'Custom'
+  };
+
+  const planFeatures: Record<string, string[]> = {
+    professional: [
+      'Advanced AI & GS1 Scanning',
+      'Up to 5 Locations & 10 Users',
+      'Risk & Incident Management',
+      'Priority Engineering Support'
+    ],
+    enterprise: [
+      'Unlimited Locations & Users',
+      'Full API Access',
+      'Custom Workflows',
+      'Dedicated Account Manager'
+    ],
+    custom: [
+      'Bespoke SLA',
+      'On-Premise Deployment Options',
+      'Unlimited Quotas',
+      'Dedicated Support Team'
+    ]
   };
 
   return (
@@ -80,44 +109,79 @@ export function UpgradeModal({
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
                 <p className="mt-2 text-muted-foreground">{description}</p>
 
-                <div className="mt-8 rounded-2xl border border-teal/20 bg-teal/5 p-6 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 rounded-bl-xl bg-teal/20 px-3 py-1 text-xs font-semibold text-teal">
-                    Recommended
-                  </div>
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <span className="capitalize">{recommendedPlan}</span> Plan
-                  </h3>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold tracking-tight">
-                        {recommendedPlan === 'professional' ? 'R799' : 'R1,999'}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/month</span>
-                  </div>
-                  
-                  <ul className="mt-6 space-y-3">
-                    {[
-                      'Advanced AI & GS1 Scanning',
-                      'Up to 5 Locations & 10 Users',
-                      'Risk & Incident Management',
-                      'Priority Engineering Support'
-                    ].map((feature, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Check className="h-4 w-4 text-teal" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {recommendedPlan === 'custom' ? (
+                  <div className="mt-8 space-y-6">
+                    {/* Inline Interactive Builder */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <label className="text-sm font-semibold text-foreground">Users</label>
+                          <span className="text-sm font-bold text-teal">20 (Example)</span>
+                        </div>
+                        <input type="range" min="2" max="50" defaultValue="20" className="w-full accent-teal" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <label className="text-sm font-semibold text-foreground">Locations</label>
+                          <span className="text-sm font-bold text-teal">5 (Example)</span>
+                        </div>
+                        <input type="range" min="1" max="20" defaultValue="5" className="w-full accent-teal" />
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-2xl border border-teal/20 bg-teal/5 p-4 text-center">
+                      <span className="text-sm font-medium text-muted-foreground block mb-1">Estimated Total</span>
+                      <span className="text-3xl font-bold tracking-tight">R2,878</span>
+                      <span className="text-sm text-muted-foreground">/month</span>
+                    </div>
 
-                <div className="mt-8 flex gap-4">
-                  <Button variant="outline" className="w-full" onClick={onClose}>
-                    Maybe Later
-                  </Button>
-                  <Button className="w-full bg-teal hover:bg-teal/90 text-white" onClick={handleUpgrade} disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-                    Upgrade Now
-                  </Button>
-                </div>
+                    <div className="flex gap-4">
+                      <Button variant="outline" className="w-full" onClick={onClose}>
+                        Cancel
+                      </Button>
+                      <Button className="w-full bg-teal hover:bg-teal/90 text-white" onClick={handleUpgrade} disabled={loading}>
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                        Upgrade to Custom
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-8 rounded-2xl border border-teal/20 bg-teal/5 p-6 relative overflow-hidden">
+                      <div className="absolute right-0 top-0 rounded-bl-xl bg-teal/20 px-3 py-1 text-xs font-semibold text-teal">
+                        Recommended
+                      </div>
+                      <h3 className="font-semibold text-foreground flex items-center gap-2">
+                        <span className="capitalize">{recommendedPlan}</span> Plan
+                      </h3>
+                      <div className="mt-2 flex items-baseline gap-1">
+                        <span className="text-3xl font-bold tracking-tight">
+                            {planPrices[recommendedPlan]}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/month</span>
+                      </div>
+                      
+                      <ul className="mt-6 space-y-3">
+                        {(planFeatures[recommendedPlan] || planFeatures['professional']).map((feature, i) => (
+                          <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <Check className="h-4 w-4 text-teal" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="mt-8 flex gap-4">
+                      <Button variant="outline" className="w-full" onClick={onClose}>
+                        Maybe Later
+                      </Button>
+                      <Button className="w-full bg-teal hover:bg-teal/90 text-white" onClick={handleUpgrade} disabled={loading}>
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                        Upgrade Now
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
