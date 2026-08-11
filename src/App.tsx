@@ -33,6 +33,7 @@ import { SuperAdminDashboard } from "./features/admin/SuperAdminDashboard";
 import { TenantsListPage } from "./features/admin/TenantsListPage";
 import { SystemHealthPage } from "./features/admin/SystemHealthPage";
 import { AuditLogsPage } from "./features/admin/AuditLogsPage";
+import { SystemAdminsPage } from "./features/admin/SystemAdminsPage";
 
 import { PublicItemPage } from "./pages/PublicItemPage";
 import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
@@ -91,6 +92,7 @@ const App = () => (
               <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
               <Route path="/admin/tenants" element={<TenantsListPage />} />
               <Route path="/admin/global-audit-logs" element={<AuditLogsPage />} />
+              <Route path="/admin/system-admins" element={<SystemAdminsPage />} />
               <Route path="/admin/system-health" element={<SystemHealthPage />} />
             </Route>
 
