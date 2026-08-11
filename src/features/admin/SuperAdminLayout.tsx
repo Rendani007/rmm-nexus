@@ -38,6 +38,7 @@ const adminNavItems = [
     { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
     { title: 'Tenants', url: '/admin/tenants', icon: Building2 },
     { title: 'Audit Logs', url: '/admin/global-audit-logs', icon: ShieldCheck },
+    { title: 'System Admins', url: '/admin/system-admins', icon: User },
     { title: 'System Health', url: '/admin/system-health', icon: ServerCrash },
 ];
 

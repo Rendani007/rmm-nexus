@@ -41,7 +41,7 @@ export const getTenantDetails = async (id: string) => {
     return unwrap<any>(res.data);
 };
 
-export const updateTenant = async (id: string, data: { is_active?: boolean; plan?: string }) => {
+export const updateTenant = async (id: string, data: { is_active?: boolean; plan?: string; trial_ends_at?: string }) => {
     const res = await api.put(`/admin/tenants/${id}`, data);
     return unwrap<any>(res.data);
 };
@@ -59,4 +59,14 @@ export const clearSystemCache = async () => {
 export const restartQueueWorkers = async () => {
     const res = await api.post('/admin/system/restart-queue');
     return unwrap<{message: string}>(res.data);
+};
+
+export const listSystemAdmins = async () => {
+    const res = await api.get('/admin/system/admins');
+    return unwrap<any[]>(res.data);
+};
+
+export const createSystemAdmin = async (data: any) => {
+    const res = await api.post('/admin/system/admins', data);
+    return unwrap<any>(res.data);
 };

@@ -30,6 +30,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { MoreHorizontal, Play, Pause, CreditCard, ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -137,6 +139,27 @@ export const TenantsListPage = () => {
         }
     };
 
+    const handleTrialChange = async (tenant: any, newDate: string) => {
+        setActionLoading(`trial-${tenant.id}`);
+        try {
+            await updateTenant(tenant.id, { trial_ends_at: newDate });
+            toast({
+                title: 'Trial Updated',
+                description: `Trial expiration date for ${tenant.name} has been updated.`,
+            });
+            setSelectedTenant({ ...tenant, trial_ends_at: newDate });
+            loadTenants();
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error?.response?.data?.message || 'Failed to update trial date.',
+            });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     return (
         <SuperAdminLayout>
             <div className="space-y-6">
@@ -157,6 +180,7 @@ export const TenantsListPage = () => {
                                 <TableHead>Plan</TableHead>
                                 <TableHead>Users</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Trial Expiry</TableHead>
                                 <TableHead>Join Date</TableHead>
                                 <TableHead className="w-[70px]"></TableHead>
                             </TableRow>
@@ -172,12 +196,13 @@ export const TenantsListPage = () => {
                                         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                                     </TableRow>
                                 ))
                             ) : tenants.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                                         No tenants found.
                                     </TableCell>
                                 </TableRow>
@@ -196,6 +221,17 @@ export const TenantsListPage = () => {
                                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>
                                             ) : (
                                                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Inactive</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {tenant.trial_ends_at ? (
+                                                new Date(tenant.trial_ends_at) < new Date() ? (
+                                                    <span className="text-red-500 font-medium">Expired {format(new Date(tenant.trial_ends_at), 'MMM d')}</span>
+                                                ) : (
+                                                    <span className="text-blue-600 font-medium">{format(new Date(tenant.trial_ends_at), 'MMM d, yyyy')}</span>
+                                                )
+                                            ) : (
+                                                <span className="text-muted-foreground">None</span>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -305,6 +341,48 @@ export const TenantsListPage = () => {
                                             <div className="text-sm text-muted-foreground">Admin Contact</div>
                                             <div className="font-medium">{selectedTenant.admin_email || 'Not provided'}</div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Trial Settings */}
+                                <div className="pt-4">
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Trial Settings</h3>
+                                    
+                                    <div className="mb-4">
+                                        <div className="text-sm text-muted-foreground mb-1">Current Trial Status</div>
+                                        {selectedTenant.trial_ends_at ? (
+                                            new Date(selectedTenant.trial_ends_at) < new Date() ? (
+                                                <Badge variant="destructive">Expired on {format(new Date(selectedTenant.trial_ends_at), 'PPP')}</Badge>
+                                            ) : (
+                                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200">Active until {format(new Date(selectedTenant.trial_ends_at), 'PPP')}</Badge>
+                                            )
+                                        ) : (
+                                            <Badge variant="outline" className="text-muted-foreground">No Trial Configured</Badge>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-end gap-4">
+                                        <div className="space-y-1.5 flex-1">
+                                            <Label htmlFor="trial_date">Change Expiration Date</Label>
+                                            <Input 
+                                                type="date" 
+                                                id="trial_date"
+                                                defaultValue={selectedTenant.trial_ends_at ? format(new Date(selectedTenant.trial_ends_at), 'yyyy-MM-dd') : ''}
+                                                onChange={(e) => selectedTenant._newTrialDate = e.target.value}
+                                            />
+                                        </div>
+                                        <Button 
+                                            variant="secondary"
+                                            onClick={() => {
+                                                if (selectedTenant._newTrialDate) {
+                                                    handleTrialChange(selectedTenant, selectedTenant._newTrialDate);
+                                                }
+                                            }}
+                                            disabled={actionLoading === `trial-${selectedTenant.id}`}
+                                        >
+                                            {actionLoading === `trial-${selectedTenant.id}` && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Update Trial
+                                        </Button>
                                     </div>
                                 </div>
 
