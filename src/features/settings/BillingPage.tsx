@@ -109,20 +109,20 @@ export function BillingPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-foreground">Locations</span>
-                <span className="text-muted-foreground">1 / 5</span>
+                <span className="text-muted-foreground">{tenant?.plan === 'custom' || tenant?.plan === 'enterprise' ? 'Unlimited' : '1 / 5'}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full bg-primary" style={{ width: '20%' }} />
+                <div className="h-full bg-primary" style={{ width: tenant?.plan === 'custom' || tenant?.plan === 'enterprise' ? '100%' : '20%' }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-foreground">Users</span>
-                <span className="text-muted-foreground">3 / 10</span>
+                <span className="text-muted-foreground">{tenant?.plan === 'custom' || tenant?.plan === 'enterprise' ? 'Unlimited' : '3 / 10'}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full bg-primary" style={{ width: '30%' }} />
+                <div className="h-full bg-primary" style={{ width: tenant?.plan === 'custom' || tenant?.plan === 'enterprise' ? '100%' : '30%' }} />
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@ export function BillingPage() {
           <div className="mt-8 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 flex gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
             <p className="text-sm text-amber-600/90 dark:text-amber-500/90">
-              Need more capacity? Upgrade to the Enterprise plan for unlimited locations, users, and API access.
+              Need more capacity? Upgrade to the Enterprise plan or contact us for a Custom setup.
             </p>
           </div>
         </div>

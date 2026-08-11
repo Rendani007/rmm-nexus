@@ -36,6 +36,8 @@ import { AuditLogsPage } from "./features/admin/AuditLogsPage";
 
 import { PublicItemPage } from "./pages/PublicItemPage";
 import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
+import { GlobalUpgradeModal } from "./components/ui/GlobalUpgradeModal";
+import { TrialExpiredPage } from "./pages/TrialExpiredPage";
 
 const queryClient = new QueryClient();
 
@@ -44,10 +46,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalUpgradeModal />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/trial-expired" element={<TrialExpiredPage />} />
           <Route path="/p/:tenant_id/:item_id" element={<PublicItemPage />} />
           <Route element={<AuthGuard />}>
 
