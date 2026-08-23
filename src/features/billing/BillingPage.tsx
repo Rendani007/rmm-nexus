@@ -160,7 +160,8 @@ export const BillingPage = () => {
                                 </Button>
                             </CardFooter>
                         </Card>
-                    ))}
+                    ))
+                )}
                 </div>
 
                 {/* Custom Plan Builder */}
