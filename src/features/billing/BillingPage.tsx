@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { getPlans, startCheckout, type Plan } from '@/api/billing';
+import { getPlans, startCheckout, type Plan, CheckoutPayload } from '@/api/billing';
+import { CustomPlanBuilder } from './components/CustomPlanBuilder';
 
 export const BillingPage = () => {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -49,7 +50,8 @@ export const BillingPage = () => {
 
     const handlePlanSelect = (id: string) => {
         setSelectedPlan(id);
-        checkoutMutation.mutate(id);
+        const payload: CheckoutPayload = { plan_slug: id };
+        checkoutMutation.mutate(payload);
     };
 
     const getIcon = (id: string) => {
@@ -85,9 +87,21 @@ export const BillingPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-8">
-                    {plans?.map((plan: Plan) => (
-                        <Card 
-                            key={plan.id} 
+                    {plans?.length === 0 ? (
+                        <div className="col-span-full flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                            <div className="bg-slate-100 p-4 rounded-full mb-4">
+                                <CreditCard className="h-8 w-8 text-slate-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">No Subscription Plans Available</h3>
+                            <p className="text-slate-500 max-w-md">
+                                There are currently no subscription plans configured in the system. 
+                                Please ensure the database has been seeded with the available plans.
+                            </p>
+                        </div>
+                    ) : (
+                        plans?.map((plan: Plan) => (
+                            <Card 
+                                key={plan.id} 
                             className={`flex flex-col relative transition-all duration-300 hover:shadow-xl border-2 ${
                                 plan.recommended ? 'border-primary scale-105 z-10' : 'border-border hover:border-muted-foreground/30'
                             }`}
@@ -148,6 +162,9 @@ export const BillingPage = () => {
                         </Card>
                     ))}
                 </div>
+
+                {/* Custom Plan Builder */}
+                <CustomPlanBuilder />
 
                 <div className="mt-12 bg-muted/50 rounded-3xl p-8 border border-dashed border-muted-foreground/20">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">

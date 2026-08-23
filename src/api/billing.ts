@@ -20,7 +20,16 @@ export const getPlans = async (): Promise<Plan[]> => {
     return res.data.data || res.data;
 };
 
-export const startCheckout = async (planId: string): Promise<CheckoutResponse> => {
-    const res = await api.post('/billing/checkout', { plan_id: planId });
+export interface CheckoutPayload {
+    plan_slug: string;
+    max_users?: number;
+    max_locations?: number;
+    advanced_scanning?: boolean;
+    risk_management?: boolean;
+    api_access?: boolean;
+}
+
+export const startCheckout = async (payload: CheckoutPayload): Promise<CheckoutResponse> => {
+    const res = await api.post('/billing/checkout', payload);
     return res.data.data || res.data;
 };
