@@ -44,7 +44,9 @@ api.interceptors.response.use(
     }
 
     if (status === 402 && error.response?.data?.trial_expired) {
-      window.location.href = "/trial-expired";
+      if (!window.location.pathname.startsWith('/billing')) {
+        window.location.href = "/trial-expired";
+      }
     }
 
     if (status === 403 && error.response?.data?.requires_upgrade) {
