@@ -281,6 +281,8 @@ export const SuperAdminDashboard = () => {
                             )}
                         </CardContent>
                     </Card>
+                </div>
+
                 {/* Charts Area */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     {/* Revenue Line Chart */}
