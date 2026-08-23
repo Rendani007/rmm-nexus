@@ -27,21 +27,16 @@ export const BillingPage = () => {
     const checkoutMutation = useMutation({
         mutationFn: startCheckout,
         onSuccess: (data) => {
-            // Create a hidden form and submit it to PayFast
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = data.url;
-
-            Object.entries(data.fields).forEach(([key, value]) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
+            // Paystack Checkout: Redirect to the authorization URL
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Checkout Error', 
+                    description: 'No checkout URL was returned by the server.' 
+                });
+            }
         },
         onError: () => {
             toast({ 
@@ -159,11 +154,11 @@ export const BillingPage = () => {
                         <div className="space-y-2">
                             <h3 className="text-xl font-bold flex items-center gap-2">
                                 <ShieldCheck className="h-5 w-5 text-primary" />
-                                Secure Payments by PayFast
+                                Secure Payments by Paystack
                             </h3>
                             <p className="text-muted-foreground max-w-md">
                                 Your payment information is encrypted and processed securely. 
-                                We support common South African payment methods.
+                                We support common African payment methods and credit cards.
                             </p>
                         </div>
                         <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
