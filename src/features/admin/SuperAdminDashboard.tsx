@@ -231,7 +231,6 @@ export const SuperAdminDashboard = () => {
                 </div>
 
                 {/* Financial KPI Cards */}
-                {import.meta.env.VITE_ENABLE_BILLING === 'true' && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -282,12 +281,8 @@ export const SuperAdminDashboard = () => {
                             )}
                         </CardContent>
                     </Card>
-                </div>
-                )}
-
                 {/* Charts Area */}
-                {import.meta.env.VITE_ENABLE_BILLING === 'true' && (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     {/* Revenue Line Chart */}
                     <Card className="col-span-4">
                         <CardHeader>
@@ -346,7 +341,6 @@ export const SuperAdminDashboard = () => {
                         </CardContent>
                     </Card>
                 </div>
-                )}
             </div>
         </SuperAdminLayout>
     );

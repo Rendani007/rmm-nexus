@@ -78,13 +78,9 @@ const App = () => (
               <Route path="/admin/departments" element={<DepartmentsPage />} />
               <Route path="/admin/security/incidents" element={<IncidentRegisterPage />} />
               <Route path="/admin/security/risks" element={<RiskRegisterPage />} />
-              {import.meta.env.VITE_ENABLE_BILLING === 'true' && (
-                <>
-                  <Route path="/billing" element={<BillingPage />} />
-                  <Route path="/billing/success" element={<PaymentSuccessPage />} />
-                  <Route path="/billing/cancel" element={<PaymentCancelPage />} />
-                </>
-              )}
+              <Route path="/billing" element={<BillingPage />} />
+              <Route path="/billing/success" element={<PaymentSuccessPage />} />
+              <Route path="/billing/cancel" element={<PaymentCancelPage />} />
             </Route>
 
             {/* Super Admin Routes */}

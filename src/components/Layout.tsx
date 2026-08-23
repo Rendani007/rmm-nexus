@@ -64,15 +64,11 @@ const adminItems = [
 
 const settingsItems = [
   { title: 'Company', url: '/admin/company', icon: Settings, adminOnly: true },
-  /* { title: 'Billing & Plans', url: '/billing', icon: CreditCard, adminOnly: true }, */
+  { title: 'Billing & Plans', url: '/billing', icon: CreditCard, adminOnly: true },
   { title: 'Attributes', url: '/admin/settings/attributes', icon: Package },
   { title: 'Security & MFA', url: '/admin/settings/security', icon: ShieldCheck, adminOnly: true },
   { title: 'Audit Logs', url: '/admin/audit-logs', icon: ShieldCheck, adminOrDept: true },
 ];
-
-if (import.meta.env.VITE_ENABLE_BILLING === 'true') {
-  settingsItems.splice(1, 0, { title: 'Billing & Plans', url: '/billing', icon: CreditCard, adminOnly: true });
-}
 
 
 
