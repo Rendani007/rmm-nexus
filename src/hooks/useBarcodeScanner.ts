@@ -27,10 +27,12 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
         aspectRatio: window.innerHeight / window.innerWidth,
       };
 
-      const cameraFacing = frontCamera ? "user" : "environment";
+      const cameraConfig = frontCamera 
+        ? { facingMode: "user" } 
+        : { facingMode: { ideal: "environment" } };
       
       await html5QrCodeRef.current.start(
-        { facingMode: cameraFacing },
+        cameraConfig,
         config,
         onScanSuccess,
         onScanFailure || (() => {})
