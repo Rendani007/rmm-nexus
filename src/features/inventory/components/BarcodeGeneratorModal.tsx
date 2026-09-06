@@ -55,7 +55,7 @@ export const BarcodeGeneratorModal = ({ isOpen, onClose, items }: BarcodeGenerat
 
   const getInternalUrl = (item: InventoryItem) => {
     const origin = window.location.origin;
-    return `${origin}/inventory?sku=${encodeURIComponent(item.sku)}`;
+    return `${origin}/items?sku=${encodeURIComponent(item.sku)}`;
   };
 
   const getPublicUrl = (item: InventoryItem) => {
