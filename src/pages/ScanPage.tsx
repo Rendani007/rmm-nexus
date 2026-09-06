@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
@@ -16,7 +16,7 @@ import { ScannerReticle } from "@/features/scanner/ScannerReticle";
 import { ScannerLoadingState } from "@/features/scanner/ScannerLoadingState";
 import { ItemNotFoundOverlay } from "@/features/scanner/ItemNotFoundOverlay";
 import { RecentScansPanel, type RecentScan } from "@/features/scanner/RecentScansPanel";
-import { ScannerSettingsPanel, ScannerControls } from "@/features/scanner/ScannerSettingsPanel";
+import { ScannerBottomBar } from "@/features/scanner/ScannerSettingsPanel";
 
 export const ScanPage = () => {
   const navigate = useNavigate();
@@ -99,6 +99,14 @@ export const ScanPage = () => {
     toggleCamera
   } = useBarcodeScanner({ onScanSuccess });
 
+  // Start scanner automatically when the component mounts
+  useEffect(() => {
+    startScanner();
+    return () => {
+      stopScanner();
+    };
+  }, [startScanner, stopScanner]);
+
   const handleResumeScanning = () => {
     setScannedItem(null);
     setNotFoundBarcode(null);
@@ -118,16 +126,15 @@ export const ScanPage = () => {
       <div className="relative w-full h-[100dvh] bg-black flex flex-col">
         <div id="reader" className="w-full h-full absolute inset-0 object-cover z-0"></div>
 
-        <ScannerControls 
-          onToggleSettings={() => setShowSettings(!showSettings)} 
-          onToggleHistory={() => setShowHistory(!showHistory)} 
-        />
-
-        <ScannerSettingsPanel 
-          showSettings={showSettings} 
-          hapticsEnabled={hapticsEnabled} 
-          onToggleHaptics={() => setHapticsEnabled(!hapticsEnabled)} 
-          onToggleCamera={toggleCamera} 
+        <ScannerBottomBar 
+          flashlightOn={flashlightOn}
+          onToggleFlashlight={toggleFlashlight}
+          onToggleCamera={toggleCamera}
+          showSettings={showSettings}
+          onToggleSettings={() => setShowSettings(!showSettings)}
+          hapticsEnabled={hapticsEnabled}
+          onToggleHaptics={() => setHapticsEnabled(!hapticsEnabled)}
+          onToggleHistory={() => setShowHistory(!showHistory)}
         />
 
         <RecentScansPanel 
@@ -139,8 +146,6 @@ export const ScanPage = () => {
           scanning={scanning} 
           loading={loading} 
           scanStatus={scanStatus} 
-          flashlightOn={flashlightOn} 
-          onToggleFlashlight={toggleFlashlight} 
         />
 
         <ScannerLoadingState loading={loading} />
