@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./features/auth/LoginPage";
 import { RegisterPage } from "./features/auth/RegisterPage";
 import { ChangePasswordPage } from "./features/auth/ChangePasswordPage";
@@ -58,6 +58,7 @@ const App = () => (
 
             <Route path="/" element={<Dashboard />} />
             <Route path="/items" element={<ItemsListPage />} />
+            <Route path="/inventory" element={<Navigate to="/items" replace />} />
             <Route path="/locations" element={<LocationsListPage />} />
             <Route path="/scan" element={<ScanPage />} />
             <Route path="/stock" element={<StockPage />} />
