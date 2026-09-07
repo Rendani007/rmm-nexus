@@ -46,7 +46,7 @@ export const stockForItem = async (id: string): Promise<StockSummary> => {
 
 export const scanItem = async (barcode: string): Promise<InventoryItem | null> => {
   try {
-    const res = await api.get(`/inventory/items/scan/${encodeURIComponent(barcode)}`);
+    const res = await api.get('/inventory/items/scan', { params: { barcode } });
     return res.data?.data;
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
@@ -58,7 +58,7 @@ export const scanItem = async (barcode: string): Promise<InventoryItem | null> =
 
 export const lookupExternalBarcode = async (barcode: string): Promise<{name?: string, category?: string, description?: string, brand?: string} | null> => {
   try {
-    const res = await api.get(`/inventory/items/lookup-external/${encodeURIComponent(barcode)}`);
+    const res = await api.get('/inventory/items/lookup-external', { params: { barcode } });
     return res.data?.data;
   } catch (error: any) {
     console.error("External lookup failed", error);
