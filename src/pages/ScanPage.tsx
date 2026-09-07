@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
@@ -31,7 +31,7 @@ export const ScanPage = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [scanMode, setScanMode] = useState<'barcode' | 'qrcode'>('barcode');
-  const lastResumedAt = React.useRef<number>(0);
+  const lastResumedAt = useRef<number>(0);
 
   const { hapticsEnabled, setHapticsEnabled, playChime, triggerVibrate } = useFeedback();
 
