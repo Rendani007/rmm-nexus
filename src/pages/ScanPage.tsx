@@ -124,7 +124,7 @@ export const ScanPage = () => {
   return (
     <Layout noPadding>
       <div className="relative w-full h-[100dvh] bg-black flex flex-col">
-        <div id="reader" className="w-full h-full absolute inset-0 object-cover z-0"></div>
+        <div id="reader" className="w-full h-full absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full bg-black"></div>
 
         <ScannerBottomBar 
           flashlightOn={flashlightOn}
