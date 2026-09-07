@@ -18,6 +18,25 @@ import { ItemNotFoundOverlay } from "@/features/scanner/ItemNotFoundOverlay";
 import { RecentScansPanel, type RecentScan } from "@/features/scanner/RecentScansPanel";
 import { ScannerBottomBar } from "@/features/scanner/ScannerSettingsPanel";
 
+const extractIdentifierFromUrl = (text: string): string => {
+  try {
+    const url = new URL(text);
+    const sku = url.searchParams.get('sku');
+    if (sku) return sku;
+    
+    const barcode = url.searchParams.get('barcode');
+    if (barcode) return barcode;
+    
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    if (pathParts[0] === 'p' && pathParts.length >= 3) {
+      return pathParts[2];
+    }
+  } catch {
+    // Not a URL, continue
+  }
+  return text;
+};
+
 export const ScanPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -51,8 +70,9 @@ export const ScanPage = () => {
     setScanStatus('idle');
 
     try {
-      const gs1Parsed = parseGS1(decodedText);
-      const searchBarcode = gs1Parsed?.gtin || decodedText;
+      const cleanedText = extractIdentifierFromUrl(decodedText);
+      const gs1Parsed = parseGS1(cleanedText);
+      const searchBarcode = gs1Parsed?.gtin || cleanedText;
       
       if (gs1Parsed) {
           setScannedGs1Data(gs1Parsed);
