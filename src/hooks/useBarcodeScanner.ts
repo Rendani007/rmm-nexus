@@ -17,8 +17,14 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
   const isStartingRef = useRef<boolean>(false);
 
   const startScanner = useCallback(async () => {
-    if (isStartingRef.current) return; // Prevent double-initialization race condition
-    if (html5QrCodeRef.current?.isScanning) return; // Already scanning
+    if (isStartingRef.current) return;
+    
+    // Check internal state using getState() if available (SCANNING = 2)
+    const currentState = html5QrCodeRef.current?.getState?.();
+    if (currentState === 2) {
+      setScanning(true);
+      return;
+    }
 
     try {
       isStartingRef.current = true;
@@ -42,9 +48,17 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
       );
       setScanning(true);
     } catch (err: any) {
+      const errorMessage = err?.message || err?.toString() || "Unknown error";
+      
+      // If it throws this specific error, it means the camera is ACTUALLY running
+      // but the internal library state got desynced during a React re-render.
+      if (errorMessage.includes("Cannot clear while scan is ongoing")) {
+        setScanning(true);
+        return;
+      }
+      
       console.error("Error starting scanner", err);
       setHasCameras(false);
-      const errorMessage = err?.message || err?.toString() || "Unknown error";
       toast.error(`Camera Error: ${errorMessage}`);
     } finally {
       isStartingRef.current = false;
