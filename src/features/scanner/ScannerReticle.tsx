@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
 
 type ScannerReticleProps = {
+  scanMode: 'barcode' | 'qrcode';
   scanning: boolean;
   loading: boolean;
   scanStatus: 'idle' | 'success' | 'error';
 };
 
 export const ScannerReticle = ({
+  scanMode,
   scanning,
   loading,
   scanStatus,
@@ -21,7 +23,16 @@ export const ScannerReticle = ({
           <mask id="cutout-mask" x="0" y="0" width="100%" height="100%">
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
             {/* The transparent cutout window in the middle */}
-            <rect x="50%" y="45%" width="256" height="160" rx="16" transform="translate(-128, -80)" fill="black" />
+            <rect 
+              x="50%" 
+              y="45%" 
+              width="256" 
+              height={scanMode === 'qrcode' ? "256" : "160"} 
+              rx="16" 
+              transform={scanMode === 'qrcode' ? "translate(-128, -128)" : "translate(-128, -80)"} 
+              fill="black" 
+              className="transition-all duration-300"
+            />
           </mask>
         </defs>
         <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#cutout-mask)" />
@@ -29,7 +40,8 @@ export const ScannerReticle = ({
       
       {/* Floating Viewfinder Frame */}
       <div className={cn(
-        "relative w-64 h-40 transition-all duration-300 -translate-y-[5%]",
+        "relative w-64 transition-all duration-300 -translate-y-[5%]",
+        scanMode === 'qrcode' ? "h-64" : "h-40",
         scanStatus === 'success' && "scale-105",
         scanStatus === 'error' && "scale-95"
       )}>
@@ -62,7 +74,7 @@ export const ScannerReticle = ({
       </div>
       
       <p className="text-white/80 mt-12 font-semibold tracking-wide text-[15px] bg-black/50 px-6 py-2 rounded-full backdrop-blur-xl border border-white/10 shadow-2xl">
-        Point at a barcode
+        Point at a {scanMode === 'qrcode' ? 'QR code' : 'barcode'}
       </p>
     </div>
   );
