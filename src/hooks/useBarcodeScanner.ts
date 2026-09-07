@@ -61,7 +61,6 @@ export const useBarcodeScanner = ({ scanMode, onScanSuccess, onScanFailure }: Us
       
       const config = {
         fps: 15,
-        qrbox: scanMode === 'qrcode' ? { width: 250, height: 250 } : { width: 250, height: 120 }, 
         aspectRatio: window.innerWidth / window.innerHeight,
       };
 
