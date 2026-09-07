@@ -31,10 +31,16 @@ export const ScanPage = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [scanMode, setScanMode] = useState<'barcode' | 'qrcode'>('barcode');
+  const lastResumedAt = React.useRef<number>(0);
 
   const { hapticsEnabled, setHapticsEnabled, playChime, triggerVibrate } = useFeedback();
 
   const onScanSuccess = async (decodedText: string) => {
+    // Prevent immediate re-scan of the same code after dismissing the drawer
+    if (Date.now() - lastResumedAt.current < 2000) {
+      return;
+    }
+
     if (loading) return;
     
     await stopScanner();
@@ -115,6 +121,7 @@ export const ScanPage = () => {
     setScannedGs1Data(null);
     setScanStatus('idle');
     setDrawerOpen(false);
+    lastResumedAt.current = Date.now();
     startScanner();
   };
 
