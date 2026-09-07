@@ -28,12 +28,23 @@ export const parseGS1 = (barcode: string): GS1Data | null => {
     while (remaining.length > 0) {
       if (remaining.startsWith('01')) {
         // GTIN is exactly 14 digits
-        data.gtin = remaining.substring(2, 16);
-        remaining = remaining.substring(16);
+        const gtinCandidate = remaining.substring(2, 16);
+        if (/^\d{14}$/.test(gtinCandidate)) {
+          data.gtin = gtinCandidate;
+          remaining = remaining.substring(16);
+        } else {
+          // False positive: Not a valid GS1 string (likely just a regular SKU starting with 01)
+          return null;
+        }
       } else if (remaining.startsWith('17')) {
         // Expiry date is exactly 6 digits (YYMMDD)
-        data.expiry = remaining.substring(2, 8);
-        remaining = remaining.substring(8);
+        const expiryCandidate = remaining.substring(2, 8);
+        if (/^\d{6}$/.test(expiryCandidate)) {
+          data.expiry = expiryCandidate;
+          remaining = remaining.substring(8);
+        } else {
+          return null;
+        }
       } else if (remaining.startsWith('10')) {
         // Batch/Lot is variable length up to 20 alphanumeric
         // If it's the last AI, it takes the rest. If there's an FNC1 (Group Separator char code 29), we'd split.
