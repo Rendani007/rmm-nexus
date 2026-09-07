@@ -124,7 +124,7 @@ export const ScanPage = () => {
 
   return (
     <Layout noPadding>
-      <div className="relative w-full h-[100dvh] bg-black flex flex-col">
+      <div className="relative w-full h-full flex-1 bg-black flex flex-col overflow-hidden">
         {/* Floating segmented toggle */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 bg-black/50 backdrop-blur-xl border border-white/10 p-1 rounded-full flex gap-1 shadow-2xl">
           <button
