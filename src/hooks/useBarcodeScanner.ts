@@ -14,9 +14,14 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
   const [hasCameras, setHasCameras] = useState(true);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const isStartingRef = useRef<boolean>(false);
 
   const startScanner = useCallback(async () => {
+    if (isStartingRef.current) return; // Prevent double-initialization race condition
+    if (html5QrCodeRef.current?.isScanning) return; // Already scanning
+
     try {
+      isStartingRef.current = true;
       if (!html5QrCodeRef.current) {
         html5QrCodeRef.current = new Html5Qrcode("reader", false);
       }
@@ -41,6 +46,8 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
       setHasCameras(false);
       const errorMessage = err?.message || err?.toString() || "Unknown error";
       toast.error(`Camera Error: ${errorMessage}`);
+    } finally {
+      isStartingRef.current = false;
     }
   }, [frontCamera, onScanSuccess, onScanFailure]);
 
