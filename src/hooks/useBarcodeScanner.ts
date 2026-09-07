@@ -35,7 +35,7 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
       const config = {
         fps: 15,
         qrbox: { width: 250, height: 150 }, 
-        aspectRatio: window.innerHeight / window.innerWidth,
+        aspectRatio: window.innerWidth / window.innerHeight,
       };
 
       const cameraConfig = frontCamera ? "user" : "environment";
