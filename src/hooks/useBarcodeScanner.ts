@@ -27,21 +27,20 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
         aspectRatio: window.innerHeight / window.innerWidth,
       };
 
-      const cameraConfig = frontCamera 
-        ? { facingMode: "user" } 
-        : { facingMode: { ideal: "environment" } };
+      const cameraConfig = frontCamera ? "user" : "environment";
       
       await html5QrCodeRef.current.start(
-        cameraConfig,
+        { facingMode: cameraConfig },
         config,
         onScanSuccess,
         onScanFailure || (() => {})
       );
       setScanning(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting scanner", err);
       setHasCameras(false);
-      toast.error("Could not access camera. Please check permissions.");
+      const errorMessage = err?.message || err?.toString() || "Unknown error";
+      toast.error(`Camera Error: ${errorMessage}`);
     }
   }, [frontCamera, onScanSuccess, onScanFailure]);
 
