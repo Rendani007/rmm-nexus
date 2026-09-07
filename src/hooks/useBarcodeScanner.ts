@@ -1,25 +1,39 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { toast } from 'sonner';
 
 type UseBarcodeScannerProps = {
+  scanMode: 'barcode' | 'qrcode';
   onScanSuccess: (decodedText: string) => void;
   onScanFailure?: (errorMessage: string) => void;
 };
 
-export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeScannerProps) => {
+export const useBarcodeScanner = ({ scanMode, onScanSuccess, onScanFailure }: UseBarcodeScannerProps) => {
   const [scanning, setScanning] = useState(false);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [frontCamera, setFrontCamera] = useState(false);
   const [hasCameras, setHasCameras] = useState(true);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const currentModeRef = useRef<'barcode' | 'qrcode' | null>(null);
   const isStartingRef = useRef<boolean>(false);
 
   const startScanner = useCallback(async () => {
     if (isStartingRef.current) return;
     
-    // Check internal state using getState() if available (SCANNING = 2)
+    // Check if mode changed; if so, we MUST destroy the old instance
+    if (currentModeRef.current !== scanMode && html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        html5QrCodeRef.current.clear();
+      } catch (err) {
+        // Ignore cleanup errors
+      }
+      html5QrCodeRef.current = null;
+    }
+
     const currentState = html5QrCodeRef.current?.getState?.();
     if (currentState === 2) {
       setScanning(true);
@@ -29,12 +43,25 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
     try {
       isStartingRef.current = true;
       if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode("reader", false);
+        const formatsToSupport = scanMode === 'qrcode' 
+          ? [Html5QrcodeSupportedFormats.QR_CODE]
+          : [
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.ITF,
+            ];
+
+        html5QrCodeRef.current = new Html5Qrcode("reader", { formatsToSupport });
+        currentModeRef.current = scanMode;
       }
       
       const config = {
         fps: 15,
-        qrbox: { width: 250, height: 150 }, 
+        qrbox: scanMode === 'qrcode' ? { width: 250, height: 250 } : { width: 250, height: 120 }, 
         aspectRatio: window.innerWidth / window.innerHeight,
       };
 
@@ -63,7 +90,7 @@ export const useBarcodeScanner = ({ onScanSuccess, onScanFailure }: UseBarcodeSc
     } finally {
       isStartingRef.current = false;
     }
-  }, [frontCamera, onScanSuccess, onScanFailure]);
+  }, [frontCamera, onScanSuccess, onScanFailure, scanMode]);
 
   const stopScanner = useCallback(async () => {
     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {

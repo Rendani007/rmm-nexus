@@ -30,6 +30,7 @@ export const ScanPage = () => {
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [scanMode, setScanMode] = useState<'barcode' | 'qrcode'>('barcode');
 
   const { hapticsEnabled, setHapticsEnabled, playChime, triggerVibrate } = useFeedback();
 
@@ -97,7 +98,7 @@ export const ScanPage = () => {
     stopScanner,
     toggleFlashlight,
     toggleCamera
-  } = useBarcodeScanner({ onScanSuccess });
+  } = useBarcodeScanner({ scanMode, onScanSuccess });
 
   // Start scanner automatically when the component mounts
   useEffect(() => {
@@ -124,7 +125,23 @@ export const ScanPage = () => {
   return (
     <Layout noPadding>
       <div className="relative w-full h-[100dvh] bg-black flex flex-col">
-        <div id="reader" className="w-full h-full absolute inset-0 z-0 [&>video]:object-cover [&>video]:w-full [&>video]:h-full bg-black"></div>
+        {/* Floating segmented toggle */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 bg-black/50 backdrop-blur-xl border border-white/10 p-1 rounded-full flex gap-1 shadow-2xl">
+          <button
+            onClick={() => setScanMode('barcode')}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${scanMode === 'barcode' ? 'bg-white text-black shadow-md' : 'text-white/60 hover:text-white/90'}`}
+          >
+            Barcode
+          </button>
+          <button
+            onClick={() => setScanMode('qrcode')}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${scanMode === 'qrcode' ? 'bg-white text-black shadow-md' : 'text-white/60 hover:text-white/90'}`}
+          >
+            QR Code
+          </button>
+        </div>
+
+        <div id="reader" className="w-full h-full absolute inset-0 z-0 bg-black overflow-hidden flex justify-center items-center"></div>
 
         <ScannerBottomBar 
           flashlightOn={flashlightOn}
@@ -143,6 +160,7 @@ export const ScanPage = () => {
         />
 
         <ScannerReticle 
+          scanMode={scanMode}
           scanning={scanning} 
           loading={loading} 
           scanStatus={scanStatus} 
