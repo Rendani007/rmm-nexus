@@ -9,9 +9,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [".railway.app", ".ngrok.io", ".ngrok-free.app", ".ngrok-free.dev"],
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   preview: {
-    allowedHosts: [".railway.app"],
+    allowedHosts: [".railway.app", ".ngrok.io", ".ngrok-free.app", ".ngrok-free.dev"],
   },
 
   plugins: [
