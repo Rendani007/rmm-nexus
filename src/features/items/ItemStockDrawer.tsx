@@ -103,7 +103,7 @@ export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawe
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
-        className="w-full sm:max-w-xl" // Slightly wider for history table
+        className="w-full sm:max-w-xl overflow-y-auto" // Added overflow-y-auto for scrolling
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
