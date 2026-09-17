@@ -177,7 +177,7 @@ export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawe
                         Total Stock
                       </div>
                       <Badge variant="secondary" className="text-lg font-bold">
-                        {stock.total} {item?.uom}
+                        {stock.total}
                       </Badge>
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawe
                               </div>
                             </div>
                             <Badge variant="outline">
-                              {loc.qty} {item?.uom}
+                              {loc.qty}
                             </Badge>
                           </div>
                         ))}
@@ -220,7 +220,7 @@ export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawe
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Reorder Level:</span>
                           <span className="font-medium">
-                            {item.reorder_level} {item.uom}
+                            {item.reorder_level}
                           </span>
                         </div>
                         {stock.total < item.reorder_level && (
