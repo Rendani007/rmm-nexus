@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload, Printer } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Loader2, Download, Upload, Printer, SlidersHorizontal, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -25,6 +32,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { listItems, deleteItem, downloadExport, bulkDeleteItems } from '@/api/items';
 import { ItemFormDialog } from './ItemFormDialog';
 import { ItemStockDrawer } from './ItemStockDrawer';
@@ -288,13 +296,14 @@ export const ItemsListPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Items</h1>
-            <p className="text-muted-foreground">Manage your inventory items</p>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+          <div className="min-w-0 w-full">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Items</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">Manage your inventory items</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* Desktop Actions Toolbar */}
+          <div className="hidden sm:flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate('/admin/settings/attributes')}>
               Attributes
             </Button>
@@ -324,28 +333,67 @@ export const ItemsListPage = () => {
             </Button>
           </div>
 
-
+          {/* Mobile Actions Toolbar */}
+          <div className="flex sm:hidden items-center gap-2 w-full">
+            <Button onClick={() => setFormOpen(true)} className="flex-1 min-h-[44px]">
+              <Plus className="mr-2 h-4 w-4" />
+              New Item
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5 shrink-0 px-3 min-h-[44px]">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span>Actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => navigate('/admin/settings/attributes')} className="min-h-[40px]">
+                  Attributes
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport} disabled={exporting} className="min-h-[40px]">
+                  <Download className="mr-2 h-4 w-4" /> Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)} className="min-h-[40px]">
+                  <Upload className="mr-2 h-4 w-4" /> Import Items
+                </DropdownMenuItem>
+                {filteredItems.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handlePrintRequest(filteredItems)} className="min-h-[40px]">
+                      <Printer className="mr-2 h-4 w-4" /> Print Visible
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setBulkDeleteDialogOpen(true)} 
+                      className="text-destructive focus:text-destructive min-h-[40px]"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Visible
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-2 justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 justify-between">
           <div className="relative flex-1 w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, SKU, or category..."
-              className="pl-8"
+              className="pl-8 w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           {user?.is_tenant_admin && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Department:</span>
               <Select
                 value={selectedDepartmentId || '__all__'}
                 onValueChange={(val) => setSelectedDepartmentId(val === '__all__' ? '' : val)}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
@@ -359,8 +407,108 @@ export const ItemsListPage = () => {
           )}
         </div>
 
+        {/* Mobile Card List View */}
+        <div className="block md:hidden space-y-3">
+          {loading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+            </div>
+          ) : !isArray ? (
+            <div className="py-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-border/50">
+              Unexpected data shape received. Please try again.
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border/60 p-6">
+              {search ? 'No items found matching your search.' : 'No items yet. Create your first item to get started.'}
+            </div>
+          ) : (
+            filteredItems.map((item) => (
+              <div key={item.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                        {item.sku || 'NO SKU'}
+                      </span>
+                      {item.category && (
+                        <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+                          {item.category}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-base leading-snug text-foreground break-words">
+                      {item.name}
+                    </h3>
+                  </div>
+                  <Badge 
+                    variant={item.stock_on_hand && item.stock_on_hand > 0 ? "default" : "secondary"} 
+                    className={cn(
+                      "shrink-0 font-medium text-xs",
+                      item.stock_on_hand && item.stock_on_hand > 0 
+                        ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0" 
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {item.stock_on_hand ?? 0} in stock
+                  </Badge>
+                </div>
 
-        <div className="rounded-md border overflow-x-auto pb-4">
+                <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    {item.uom && <span>Unit: <strong className="text-foreground">{item.uom}</strong></span>}
+                    {item.reorder_level !== undefined && item.reorder_level !== null && (
+                      <span>Reorder: <strong className="text-foreground">{item.reorder_level}</strong></span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 text-slate-500 hover:text-foreground"
+                      onClick={() => handlePrintRequest([item])}
+                      aria-label="Print barcode"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 text-slate-500 hover:text-foreground"
+                      onClick={() => handleViewStock(item)}
+                      aria-label="View stock"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 text-slate-500 hover:text-foreground"
+                      onClick={() => handleEdit(item)}
+                      aria-label="Edit item"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        setItemToDelete(item);
+                        setDeleteDialogOpen(true);
+                      }}
+                      aria-label="Delete item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block rounded-md border overflow-x-auto pb-4">
           <Table className="min-w-full">
             <TableHeader>
               <TableRow>

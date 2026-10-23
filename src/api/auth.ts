@@ -61,3 +61,32 @@ export const registerBusiness = async (body: any): Promise<AuthLoginResp> => {
   } as AuthLoginResp;
 };
 
+export const forgotPassword = async (body: { email: string; tenant_slug: string }): Promise<{ message: string }> => {
+  const res = await api.post('/auth/forgot-password', body);
+  return unwrap(res.data);
+};
+
+export const resetPassword = async (body: {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+  tenant_slug: string;
+}): Promise<{ message: string }> => {
+  const res = await api.post('/auth/reset-password', body);
+  return unwrap(res.data);
+};
+
+export const acceptInvitation = async (body: {
+  email: string;
+  token: string;
+  tenant_slug: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<AuthLoginResp> => {
+  const res = await api.post('/auth/accept-invitation', body);
+  return unwrap(res.data);
+};
+
+
+

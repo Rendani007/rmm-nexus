@@ -176,15 +176,15 @@ export const DepartmentsPage = () => {
 
     return (
         <Layout>
-            <div className="space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 className="text-3xl font-bold tracking-tight">Departments</h2>
-                        <p className="text-muted-foreground">
+            <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full min-w-0">
+                    <div className="min-w-0 w-full">
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Departments</h2>
+                        <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">
                             Manage company departments and budgets.
                         </p>
                     </div>
-                    <Button onClick={() => { setSelectedDepartment(null); setIsDialogOpen(true); }}>
+                    <Button onClick={() => { setSelectedDepartment(null); setIsDialogOpen(true); }} className="w-full sm:w-auto min-h-[44px] shrink-0">
                         <Plus className="mr-2 h-4 w-4" />
                         Add Department
                     </Button>
@@ -211,18 +211,84 @@ export const DepartmentsPage = () => {
                     </Card>
                 </div>
 
-                <div className="flex items-center py-4">
+                <div className="w-full sm:max-w-sm py-2">
                     <Input
                         placeholder="Filter departments..."
                         value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
                         onChange={(event) =>
                             table.getColumn('name')?.setFilterValue(event.target.value)
                         }
-                        className="max-w-sm"
+                        className="w-full"
                     />
                 </div>
 
-                <div className="rounded-md border overflow-x-auto">
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-3">
+                    {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => {
+                            const dept = row.original;
+                            const amount = parseFloat(dept.budget_limit || '0');
+                            return (
+                                <div key={dept.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-semibold text-base text-foreground leading-tight truncate">{dept.name}</h3>
+                                            {dept.description && (
+                                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{dept.description}</p>
+                                            )}
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-9 w-9 p-0 -mr-1">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => {
+                                                    setSelectedDepartment(dept);
+                                                    setIsDialogOpen(true);
+                                                }}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="text-destructive"
+                                                    onClick={() => setDepartmentToDelete(dept.id)}
+                                                >
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs text-muted-foreground">
+                                        <div>
+                                            <span className="text-muted-foreground">Budget: </span>
+                                            <span className="font-medium text-foreground">
+                                                {amount > 0 ? formatCurrency(amount, dept.currency) : '—'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">Users: </span>
+                                            <Badge variant="secondary" className="text-xs font-semibold ml-1">
+                                                {dept.users_count || 0}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+                            No departments found.
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -270,23 +336,30 @@ export const DepartmentsPage = () => {
                         </TableBody>
                     </Table>
                 </div>
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                <div className="flex items-center justify-between space-x-2 py-4">
+                    <span className="text-xs text-muted-foreground">
+                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="min-h-[40px] px-3"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="min-h-[40px] px-3"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </div>
 
                 <DepartmentDialog

@@ -126,33 +126,82 @@ export const IncidentRegisterPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <ShieldAlert className="h-8 w-8 text-primary shrink-0" />
-              <span>Security Incident Register</span>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 w-full min-w-0">
+          <div className="min-w-0 w-full">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 tracking-tight text-foreground min-w-0">
+              <ShieldAlert className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0" />
+              <span className="truncate sm:whitespace-normal">Security Incident Register</span>
             </h1>
-            <p className="text-muted-foreground mt-1">Track and manage security incidents for compliance.</p>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">Track and manage security incidents for compliance.</p>
           </div>
-          <Button onClick={() => { setSelectedIncident(null); setDialogOpen(true); }}>
+          <Button onClick={() => { setSelectedIncident(null); setDialogOpen(true); }} className="w-full sm:w-auto min-h-[44px] shrink-0">
             <Plus className="mr-2 h-4 w-4" /> Report Incident
           </Button>
         </div>
 
-      <div className="flex items-center gap-4 max-w-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search incidents..."
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      <div className="relative w-full sm:max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search incidents..."
+          className="pl-8 w-full"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      <div className="rounded-md border bg-card overflow-x-auto pb-4">
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-3">
+        {loading ? (
+          <div className="py-12 text-center">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+          </div>
+        ) : filteredIncidents.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+            {search ? 'No incidents matching your search.' : 'No incidents recorded.'}
+          </div>
+        ) : (
+          filteredIncidents.map((incident) => (
+            <div key={incident.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getSeverityBadge(incident.severity)}
+                  {getStatusBadge(incident.status)}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => { setSelectedIncident(incident); setDialogOpen(true); }}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(incident.id)} disabled={deletingId === incident.id}>
+                    {deletingId === incident.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-base text-foreground leading-snug">
+                  {incident.title}
+                </h4>
+                {incident.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                    {incident.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs text-muted-foreground">
+                <span>Reported: {format(new Date(incident.reported_at), 'PPP')}</span>
+                {incident.reporter && (
+                  <span>By: <strong className="text-foreground">{incident.reporter.first_name} {incident.reporter.last_name}</strong></span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border bg-card overflow-x-auto pb-4">
         <Table className="min-w-full">
           <TableHeader>
             <TableRow>

@@ -152,34 +152,107 @@ export const LocationsListPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
-            <p className="text-muted-foreground">Manage your storage locations</p>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 w-full min-w-0">
+          <div className="min-w-0 w-full">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Locations</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">Manage your storage locations</p>
           </div>
           {(user?.is_tenant_admin || user?.role === 'department_admin') && (
-            <Button onClick={() => setFormOpen(true)}>
+            <Button onClick={() => setFormOpen(true)} className="w-full sm:w-auto min-h-[44px] shrink-0">
               <Plus className="mr-2 h-4 w-4" />
               New Location
             </Button>
           )}
         </div>
 
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by code or name..."
-              className="pl-8"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by code or name..."
+            className="pl-8 w-full"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        <div className="rounded-md border">
+        {/* Mobile Cards View */}
+        <div className="block md:hidden space-y-3">
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Loading locations...
+            </div>
+          ) : !isArray ? (
+            <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+              Unexpected data shape received. Please try again.
+            </div>
+          ) : filteredLocations.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+              {search ? 'No locations found matching your search.' : 'No locations yet. Create your first location to get started.'}
+            </div>
+          ) : (
+            filteredLocations.map((location) => (
+              <div key={location.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-semibold bg-muted px-2 py-0.5 rounded text-foreground">
+                        {location.code}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-base text-foreground mt-1 leading-snug">
+                      {location.name}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(user?.is_tenant_admin || user?.role === 'department_admin') && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0"
+                          onClick={() => handleEdit(location)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setLocationToDelete(location);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
+                  <span className="text-muted-foreground">
+                    {location.created_at ? new Date(location.created_at).toLocaleDateString() : '—'}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-medium"
+                    onClick={() => setDrawerLocationId(location.id)}
+                  >
+                    <Package className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                    View Stock
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

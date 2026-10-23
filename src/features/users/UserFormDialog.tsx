@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,14 +24,29 @@ const createSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    password_confirmation: z.string(),
+    send_invitation: z.boolean().default(true),
+    password: z.string().optional(),
+    password_confirmation: z.string().optional(),
     job_title: z.string().optional(),
     department_id: z.string().optional(),
     is_tenant_admin: z.boolean().default(false),
-}).refine((data) => data.password === data.password_confirmation, {
-    message: "Passwords don't match",
-    path: ['password_confirmation'],
+}).superRefine((data, ctx) => {
+    if (!data.send_invitation) {
+        if (!data.password || data.password.length < 8) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Password must be at least 8 characters',
+                path: ['password'],
+            });
+        }
+        if (data.password !== data.password_confirmation) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Passwords don't match",
+                path: ['password_confirmation'],
+            });
+        }
+    }
 });
 
 const editSchema = z.object({
@@ -93,6 +108,7 @@ export const UserFormDialog = ({ user, onSuccess }: UserFormDialogProps) => {
                 first_name: '',
                 last_name: '',
                 email: '',
+                send_invitation: true,
                 password: '',
                 password_confirmation: '',
                 job_title: '',
@@ -144,6 +160,7 @@ export const UserFormDialog = ({ user, onSuccess }: UserFormDialogProps) => {
     const [showPassword, setShowPassword] = useState(false);
 
     const watchedIsAdmin = watch('is_tenant_admin');
+    const sendInvitation = isEdit ? false : ((watch as any)('send_invitation') ?? true);
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -174,73 +191,99 @@ export const UserFormDialog = ({ user, onSuccess }: UserFormDialogProps) => {
             </div>
 
             {!isEdit && (
-                <>
-                    <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <div className="relative">
-                            <Input
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                {...register('password' as any)}
-                                disabled={isLoading}
-                                className="pr-10"
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                                tabIndex={-1}
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
-                                )}
-                            </Button>
-                        </div>
-                        {(errors as any).password && (
-                            <p className="text-sm text-destructive">{(errors as any).password.message}</p>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="password_confirmation">Confirm Password</Label>
-                        <div className="relative">
-                            <Input
-                                id="password_confirmation"
-                                type={showPassword ? 'text' : 'password'}
-                                {...register('password_confirmation' as any)}
-                                disabled={isLoading}
-                                className="pr-10"
-                            />
-                            {/* We share the toggle for both inputs usually, or add a second one. 
-                                Sharing is cleaner for simple implementation, 
-                                but having distinct toggles works too. 
-                                I'll add a second one to confirm field too for consistency. 
-                            */}
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                                tabIndex={-1}
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
-                                )}
-                            </Button>
-                        </div>
-                        {(errors as any).password_confirmation && (
-                            <p className="text-sm text-destructive">
-                                {(errors as any).password_confirmation.message}
+                <div className="rounded-xl border border-border/70 bg-muted/30 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 pr-2">
+                            <Label htmlFor="send_invitation" className="font-semibold text-sm flex items-center gap-1.5 cursor-pointer">
+                                <Mail className="h-4 w-4 text-primary" />
+                                Send Email Invitation
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                Email a secure link to the user to choose their own password.
                             </p>
-                        )}
+                        </div>
+                        <Switch
+                            id="send_invitation"
+                            checked={sendInvitation}
+                            onCheckedChange={(checked) => (setValue as any)('send_invitation', checked)}
+                            disabled={isLoading}
+                        />
                     </div>
-                </>
+
+                    {sendInvitation ? (
+                        <div className="rounded-lg bg-primary/10 border border-primary/20 px-3 py-2 text-xs flex items-center gap-2 text-foreground/90">
+                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                            <span>
+                                An invitation email will be dispatched via Brevo SMTP with an onboarding link.
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 pt-2 border-t border-border/50">
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Set Initial Password</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        {...register('password' as any)}
+                                        disabled={isLoading}
+                                        className="pr-10"
+                                        placeholder="At least 8 characters"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </Button>
+                                </div>
+                                {(errors as any).password && (
+                                    <p className="text-sm text-destructive">{(errors as any).password.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password_confirmation">Confirm Password</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password_confirmation"
+                                        type={showPassword ? 'text' : 'password'}
+                                        {...register('password_confirmation' as any)}
+                                        disabled={isLoading}
+                                        className="pr-10"
+                                        placeholder="Repeat password"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </Button>
+                                </div>
+                                {(errors as any).password_confirmation && (
+                                    <p className="text-sm text-destructive">
+                                        {(errors as any).password_confirmation.message}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Loader2, MapPin, Package, ArrowRight, ArrowLeft } from 'lucide-react';
 import {
   Sheet,
@@ -28,56 +29,42 @@ interface ItemStockDrawerProps {
   onClose: () => void;
 }
 
+
 export const ItemStockDrawer = ({ open, item, gs1Data, onClose }: ItemStockDrawerProps) => {
-  const [stock, setStock] = useState<StockSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
   const navigate = useNavigate();
 
-  // History state
-  const [movements, setMovements] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const { data: customFields = [] } = useQuery({
+    queryKey: ['customFields', 'inventory_item'],
+    queryFn: () => getCustomFields('inventory_item'),
+    enabled: open,
+  });
 
-  useEffect(() => {
-    if (open) {
-      getCustomFields('inventory_item').then(setCustomFields).catch(console.error);
-    }
-  }, [open]);
+  const { data: stock, isLoading: loading, error: stockError } = useQuery({
+    queryKey: ['stock', item?.id],
+    queryFn: () => stockForItem(item!.id),
+    enabled: open && !!item,
+  });
 
-  useEffect(() => {
-    const loadStock = async () => {
-      if (!item || !open) return;
+  const [historyTab, setHistoryTab] = useState(false);
 
-      setLoading(true);
-      try {
-        const data = await stockForItem(item.id);
-        setStock(data);
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Failed to load stock',
-          description: error.response?.data?.message || 'An error occurred',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: movementsResponse, isLoading: historyLoading } = useQuery({
+    queryKey: ['movements', item?.id],
+    queryFn: () => listStockMovements({ inventory_item_id: item!.id }),
+    enabled: historyTab && !!item,
+  });
 
-    loadStock();
-  }, [item, open]);
+  const movements = movementsResponse?.data || [];
 
-  // Load history when tab changes or item opens
-  const loadHistory = async () => {
-    if (!item) return;
-    setHistoryLoading(true);
-    try {
-      const res = await listStockMovements({ inventory_item_id: item.id });
-      setMovements(res.data);
-    } catch (error) {
-      console.error("Failed to load history", error);
-    } finally {
-      setHistoryLoading(false);
-    }
+  if (stockError) {
+    toast({
+      variant: 'destructive',
+      title: 'Failed to load stock',
+      description: (stockError as any)?.response?.data?.message || 'An error occurred',
+    });
+  }
+
+  const loadHistory = () => {
+    setHistoryTab(true);
   };
 
   // Safe metadata parsing

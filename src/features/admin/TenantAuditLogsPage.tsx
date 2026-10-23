@@ -78,30 +78,77 @@ export function TenantAuditLogsPage() {
 
     return (
         <Layout>
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Audit Trails</h1>
-                        <p className="text-muted-foreground">
+            <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 w-full min-w-0">
+                    <div className="min-w-0 w-full">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Audit Trails</h1>
+                        <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">
                             Monitor system activity and changes for security and compliance.
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Filter by action (e.g. create_item)..."
-                            className="pl-8 bg-white"
-                            value={filters.action}
-                            onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                            onKeyDown={(e) => e.key === 'Enter' && loadLogs()}
-                        />
-                    </div>
+                <div className="relative w-full sm:max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Filter by action (e.g. create_item)..."
+                        className="pl-8 w-full"
+                        value={filters.action}
+                        onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                        onKeyDown={(e) => e.key === 'Enter' && loadLogs()}
+                    />
                 </div>
 
-                <div className="rounded-md border bg-card">
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-3">
+                    {loading ? (
+                        <div className="py-12 text-center">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+                            No audit records found.
+                        </div>
+                    ) : (
+                        logs.map((log) => (
+                            <div key={log.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <Badge variant={getActionColor(log.action) as any} className="capitalize">
+                                        {log.action.replace(/_/g, ' ')}
+                                    </Badge>
+                                    <span className="font-medium text-xs text-muted-foreground">
+                                        {format(new Date(log.created_at), 'MMM dd, HH:mm:ss')}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2 text-sm">
+                                    {log.user ? (
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-foreground">
+                                                {log.user.first_name} {log.user.last_name}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">{log.user.email}</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted-foreground text-sm italic">System</span>
+                                    )}
+                                    <span className="font-mono text-[11px] bg-muted/60 px-2 py-0.5 rounded text-muted-foreground">
+                                        {log.ip_address || '—'}
+                                    </span>
+                                </div>
+
+                                {log.details && (
+                                    <div className="bg-muted/40 p-2.5 rounded-lg border border-border/50 text-[11px] font-mono text-muted-foreground break-all max-h-24 overflow-y-auto">
+                                        {typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details)}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>

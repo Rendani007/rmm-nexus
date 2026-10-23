@@ -23,9 +23,21 @@ export const LoginPage = () => {
   const [mfaToken, setMfaToken] = useState('');
   const [mfaCode, setMfaCode] = useState('');
 
-  const { register, handleSubmit, formState: { errors } } = useForm<AuthLoginBody>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<AuthLoginBody>({
     resolver: zodResolver(loginSchema),
   });
+
+  const tenantSlug = watch('tenant_slug');
+  const email = watch('email');
+
+  const forgotPasswordLink = `/forgot-password${
+    tenantSlug || email
+      ? `?${new URLSearchParams({
+          ...(tenantSlug ? { tenant: tenantSlug.trim() } : {}),
+          ...(email ? { email: email.trim() } : {}),
+        }).toString()}`
+      : ''
+  }`;
 
   const handleSuccessfulAuth = (response: AuthLoginResp & { mfa_required?: boolean; mfa_token?: string }, slug?: string) => {
     if (response.mfa_required && response.mfa_token) {
@@ -199,7 +211,7 @@ export const LoginPage = () => {
               <Input id="email" type="email" placeholder="user@example.com" {...register('email')} disabled={loading} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
@@ -224,14 +236,25 @@ export const LoginPage = () => {
                 </Button>
               </div>
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+              <div className="flex justify-end pt-1">
+                <Link
+                  to={forgotPasswordLink}
+                  className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-primary transition-colors hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
-            <div className="text-center text-sm">
-              Don't have an account?{' '}
-              <Link to="/register" className="underline hover:text-primary">
+            <div className="text-center text-sm text-muted-foreground pt-2">
+              Don&apos;t have an account?{' '}
+              <Link
+                to="/register"
+                className="font-semibold text-primary hover:text-primary/80 transition-colors hover:underline underline-offset-4"
+              >
                 Register your business
               </Link>
             </div>

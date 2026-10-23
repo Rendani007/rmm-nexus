@@ -254,8 +254,8 @@ export const RequestTransfer = () => {
                     </div>
 
                     <div className="flex gap-4 pt-2">
-                        <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full">Cancel</Button>
-                        <Button type="submit" className="w-full" disabled={!canSubmit}>
+                        <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full min-h-[44px]">Cancel</Button>
+                        <Button type="submit" className="w-full min-h-[44px]" disabled={!canSubmit}>
                             {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending...</> : "Send Request"}
                         </Button>
                     </div>

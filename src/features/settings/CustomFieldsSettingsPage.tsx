@@ -195,26 +195,26 @@ export const CustomFieldsSettingsPage = () => {
 
     return (
         <Layout>
-            <div className="space-y-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex items-start gap-3">
-                        <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate(-1)}>
+            <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full min-w-0">
+                    <div className="flex items-start gap-3 min-w-0">
+                        <Button variant="ghost" size="icon" className="mt-1 shrink-0 h-9 w-9" onClick={() => navigate(-1)}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div>
-                            <h2 className="text-3xl font-bold tracking-tight">Inventory Attributes</h2>
-                            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                        <div className="min-w-0">
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Inventory Attributes</h2>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm break-words">
                                 Define custom fields for your inventory items (e.g., Serial Number, Expiry Date).
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
                         {user?.is_tenant_admin && (
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <Label className="text-muted-foreground whitespace-nowrap text-sm">Manage fields for:</Label>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                                <Label className="text-muted-foreground whitespace-nowrap text-xs sm:text-sm">Manage fields for:</Label>
                                 <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
-                                    <SelectTrigger className="w-[180px] sm:w-[200px]">
+                                    <SelectTrigger className="w-full sm:w-[190px]">
                                         <SelectValue placeholder="Select Scope" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -229,27 +229,26 @@ export const CustomFieldsSettingsPage = () => {
                         )}
 
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Button 
-                            variant="destructive" 
-                            onClick={() => setIsDeleteAllOpen(true)} 
-                            disabled={fields.length === 0 || loading}
-                            className="flex-1 sm:flex-none"
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete All
-                        </Button>
-                        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-
-                            setIsDialogOpen(open);
-                            if (!open) {
-                                setEditingField(null);
-                                reset();
-                            }
-                        }}>
-                            <DialogTrigger asChild>
-                                <Button onClick={() => setEditingField(null)} className="flex-1 sm:flex-none">
-                                    <Plus className="mr-2 h-4 w-4" /> Add Field
-                                </Button>
-                            </DialogTrigger>
+                            <Button 
+                                variant="destructive" 
+                                onClick={() => setIsDeleteAllOpen(true)} 
+                                disabled={fields.length === 0 || loading}
+                                className="flex-1 sm:flex-none min-h-[42px]"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete All
+                            </Button>
+                            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                                setIsDialogOpen(open);
+                                if (!open) {
+                                    setEditingField(null);
+                                    reset();
+                                }
+                            }}>
+                                <DialogTrigger asChild>
+                                    <Button onClick={() => setEditingField(null)} className="flex-1 sm:flex-none min-h-[42px]">
+                                        <Plus className="mr-2 h-4 w-4" /> Add Field
+                                    </Button>
+                                </DialogTrigger>
                         <DialogContent onInteractOutside={(e) => e.preventDefault()}>
                             <DialogHeader>
                                 <DialogTitle>{editingField ? 'Edit Field' : 'Add Custom Field'}</DialogTitle>
@@ -339,64 +338,123 @@ export const CustomFieldsSettingsPage = () => {
                         ) : fields.length === 0 ? (
                             <div className="text-center p-8 text-muted-foreground">No custom fields defined yet.</div>
                         ) : (
-                            <div className="rounded-md border overflow-x-auto pb-4">
-                                <Table className="min-w-full">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="whitespace-nowrap">Label</TableHead>
-                                            <TableHead className="whitespace-nowrap">Key</TableHead>
-                                            <TableHead className="whitespace-nowrap">Scope</TableHead>
-                                            <TableHead className="whitespace-nowrap">Type</TableHead>
-                                            <TableHead className="whitespace-nowrap">Required</TableHead>
-                                            <TableHead className="whitespace-nowrap">Order</TableHead>
-                                            <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {fields.map((field) => (
-                                            <TableRow key={field.id}>
-                                                <TableCell className="font-medium whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        {field.label}
+                            <>
+                                {/* Mobile Cards View */}
+                                <div className="block md:hidden space-y-3">
+                                    {fields.map((field) => (
+                                        <div key={field.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h4 className="font-semibold text-base text-foreground">{field.label}</h4>
                                                         {field.is_system && (
                                                             <Badge variant="secondary" className="text-[10px] h-4 px-1">System</Badge>
                                                         )}
                                                     </div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm font-mono whitespace-nowrap">{field.field_key}</TableCell>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {field.department_id 
-                                                        ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Department')
-                                                        : <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-50">Global</Badge>
-                                                    }
-                                                </TableCell>
-                                                <TableCell className="capitalize whitespace-nowrap">{field.type}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{field.is_required ? 'Yes' : 'No'}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{field.sort_order}</TableCell>
-                                                <TableCell className="text-right whitespace-nowrap">
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="sm" onClick={() => {
-                                                            setEditingField(field);
-                                                            setIsDialogOpen(true);
-                                                        }}>
-                                                            Edit
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setFieldToDelete(field.id)}
-                                                            className="text-destructive hover:text-destructive disabled:opacity-30"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                    <p className="text-xs font-mono text-muted-foreground mt-0.5">{field.field_key}</p>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => {
+                                                        setEditingField(field);
+                                                        setIsDialogOpen(true);
+                                                    }}>
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                                                        onClick={() => setFieldToDelete(field.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
 
-                                                    </div>
-                                                </TableCell>
+                                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-xs">
+                                                <div>
+                                                    <span className="text-muted-foreground block text-[11px]">Scope</span>
+                                                    <span className="font-medium text-foreground">
+                                                        {field.department_id 
+                                                            ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Dept')
+                                                            : 'Global'
+                                                        }
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground block text-[11px]">Type</span>
+                                                    <span className="font-medium text-foreground capitalize">{field.type}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground block text-[11px]">Required</span>
+                                                    <Badge variant={field.is_required ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5 font-semibold mt-0.5">
+                                                        {field.is_required ? 'Yes' : 'No'}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block rounded-md border overflow-x-auto pb-4">
+                                    <Table className="min-w-full">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="whitespace-nowrap">Label</TableHead>
+                                                <TableHead className="whitespace-nowrap">Key</TableHead>
+                                                <TableHead className="whitespace-nowrap">Scope</TableHead>
+                                                <TableHead className="whitespace-nowrap">Type</TableHead>
+                                                <TableHead className="whitespace-nowrap">Required</TableHead>
+                                                <TableHead className="whitespace-nowrap">Order</TableHead>
+                                                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {fields.map((field) => (
+                                                <TableRow key={field.id}>
+                                                    <TableCell className="font-medium whitespace-nowrap">
+                                                        <div className="flex items-center gap-2">
+                                                            {field.label}
+                                                            {field.is_system && (
+                                                                <Badge variant="secondary" className="text-[10px] h-4 px-1">System</Badge>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground text-sm font-mono whitespace-nowrap">{field.field_key}</TableCell>
+                                                    <TableCell className="whitespace-nowrap">
+                                                        {field.department_id 
+                                                            ? (departments.find(d => String(d.id) === field.department_id)?.name || 'Department')
+                                                            : <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-50">Global</Badge>
+                                                        }
+                                                    </TableCell>
+                                                    <TableCell className="capitalize whitespace-nowrap">{field.type}</TableCell>
+                                                    <TableCell className="whitespace-nowrap">{field.is_required ? 'Yes' : 'No'}</TableCell>
+                                                    <TableCell className="whitespace-nowrap">{field.sort_order}</TableCell>
+                                                    <TableCell className="text-right whitespace-nowrap">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button variant="ghost" size="sm" onClick={() => {
+                                                                setEditingField(field);
+                                                                setIsDialogOpen(true);
+                                                            }}>
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setFieldToDelete(field.id)}
+                                                                className="text-destructive hover:text-destructive disabled:opacity-30"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>

@@ -152,7 +152,7 @@ export const ScanPage = () => {
   return (
     <Layout noPadding>
       {/* Bulletproof absolute positioning to prevent video overflow scrolling */}
-      <div className="absolute top-14 left-0 right-0 bottom-16 md:bottom-0 bg-black overflow-hidden flex flex-col z-0 [&_canvas]:!hidden [&_.qr-shaded-region]:!hidden">
+      <div className="absolute top-14 left-0 right-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-0 bg-black overflow-hidden flex flex-col z-0 [&_canvas]:!hidden [&_.qr-shaded-region]:!hidden">
         {/* Floating segmented toggle */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 bg-black/50 backdrop-blur-xl border border-white/10 p-1 rounded-full flex gap-1 shadow-2xl">
           <button
