@@ -75,12 +75,12 @@ export const BillingPage = () => {
 
     return (
         <Layout>
-            <div className="space-y-8 max-w-7xl mx-auto px-4 py-8">
-                <div className="text-center space-y-4">
-                    <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            <div className="space-y-8 max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+                <div className="text-center space-y-3">
+                    <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
                         RMM Subscription Plans
                     </h1>
-                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto">
                         Choose the perfect plan to scale your resource management. 
                         Lucrative features designed for efficiency and compliance.
                     </p>
@@ -103,7 +103,7 @@ export const BillingPage = () => {
                             <Card 
                                 key={plan.id} 
                             className={`flex flex-col relative transition-all duration-300 hover:shadow-xl border-2 ${
-                                plan.recommended ? 'border-primary scale-105 z-10' : 'border-border hover:border-muted-foreground/30'
+                                plan.recommended ? 'border-primary md:scale-105 z-10' : 'border-border hover:border-muted-foreground/30'
                             }`}
                         >
                             {plan.recommended && (

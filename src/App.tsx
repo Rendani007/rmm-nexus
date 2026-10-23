@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./features/auth/LoginPage";
 import { RegisterPage } from "./features/auth/RegisterPage";
+import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
+import { AcceptInvitePage } from "./features/auth/AcceptInvitePage";
 import { ChangePasswordPage } from "./features/auth/ChangePasswordPage";
 import { AuthGuard } from "./features/auth/AuthGuard";
 import { AdminGuard } from "./features/auth/AdminGuard";
@@ -39,6 +42,14 @@ import { PublicItemPage } from "./pages/PublicItemPage";
 import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
 import { GlobalUpgradeModal } from "./components/ui/GlobalUpgradeModal";
 import { TrialExpiredPage } from "./pages/TrialExpiredPage";
+import { SuppliersPage } from "./features/procurement/SuppliersPage";
+import { PurchaseOrdersPage } from "./features/procurement/PurchaseOrdersPage";
+import { CreatePurchaseOrderPage } from "./features/procurement/CreatePurchaseOrderPage";
+import { PurchaseOrderDetailPage } from "./features/procurement/PurchaseOrderDetailPage";
+import { CustomersPage } from "./features/sales/CustomersPage";
+import { SalesOrdersPage } from "./features/sales/SalesOrdersPage";
+import { CreateSalesOrderPage } from "./features/sales/CreateSalesOrderPage";
+import { SalesOrderDetailPage } from "./features/sales/SalesOrderDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -52,12 +63,23 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/accept-invitation" element={<AcceptInvitePage />} />
           <Route path="/trial-expired" element={<TrialExpiredPage />} />
           <Route path="/p/:tenant_id/:item_id" element={<PublicItemPage />} />
           <Route element={<AuthGuard />}>
 
             <Route path="/" element={<Dashboard />} />
             <Route path="/items" element={<ItemsListPage />} />
+            <Route path="/procurement/suppliers" element={<SuppliersPage />} />
+            <Route path="/procurement/purchase-orders" element={<PurchaseOrdersPage />} />
+            <Route path="/procurement/purchase-orders/new" element={<CreatePurchaseOrderPage />} />
+            <Route path="/procurement/purchase-orders/:id" element={<PurchaseOrderDetailPage />} />
+            <Route path="/sales/customers" element={<CustomersPage />} />
+            <Route path="/sales/orders" element={<SalesOrdersPage />} />
+            <Route path="/sales/orders/new" element={<CreateSalesOrderPage />} />
+            <Route path="/sales/orders/:id" element={<SalesOrderDetailPage />} />
             <Route path="/inventory" element={<Navigate to="/items" replace />} />
             <Route path="/locations" element={<LocationsListPage />} />
             <Route path="/scan" element={<ScanPage />} />

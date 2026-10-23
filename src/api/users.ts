@@ -23,8 +23,9 @@ export interface CreateUserBody {
     first_name: string;
     last_name: string;
     email: string;
-    password: string;
-    password_confirmation: string;
+    password?: string;
+    password_confirmation?: string;
+    send_invitation?: boolean;
     job_title?: string;
     department_id?: string;
     employee_id?: string;

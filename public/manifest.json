@@ -1,0 +1,19 @@
+{
+  "name": "RMM System",
+  "short_name": "RMM",
+  "description": "Resource Modular Management - Multi-Tenant Inventory & Resource System",
+  "theme_color": "#115e59",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

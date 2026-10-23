@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -16,6 +16,9 @@ import {
   ClipboardCheck,
   CreditCard,
   ScanLine,
+  Truck,
+  FileText,
+  ShoppingCart,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -62,6 +65,16 @@ const adminItems = [
   { title: 'Risk Register', url: '/admin/security/risks', icon: AlertTriangle },
 ];
 
+const procurementItems = [
+  { title: 'Suppliers', url: '/procurement/suppliers', icon: Truck },
+  { title: 'Purchase Orders', url: '/procurement/purchase-orders', icon: FileText },
+];
+
+const salesItems = [
+  { title: 'Customers', url: '/sales/customers', icon: Users },
+  { title: 'Sales Orders', url: '/sales/orders', icon: ShoppingCart },
+];
+
 const settingsItems = [
   { title: 'Company', url: '/admin/company', icon: Settings, adminOnly: true },
   { title: 'Billing & Plans', url: '/billing', icon: CreditCard, adminOnly: true },
@@ -70,7 +83,14 @@ const settingsItems = [
   { title: 'Audit Logs', url: '/admin/audit-logs', icon: ShieldCheck, adminOrDept: true },
 ];
 
-
+const SIDEBAR_SCROLL_KEY = 'rmm_sidebar_scroll_top';
+let savedSidebarScrollTop = (() => {
+  try {
+    return parseInt(sessionStorage.getItem(SIDEBAR_SCROLL_KEY) || '0', 10) || 0;
+  } catch {
+    return 0;
+  }
+})();
 
 function AppSidebar() {
   const { state } = useSidebar();
@@ -78,6 +98,32 @@ function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { user } = useAuthStore();
   const isAdmin = user?.is_tenant_admin;
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Restore scroll position before paint and keep active route in view
+  useLayoutEffect(() => {
+    if (!contentRef.current) return;
+
+    // Immediately restore cached scroll offset
+    contentRef.current.scrollTop = savedSidebarScrollTop;
+
+    // Ensure the active menu item is anchored in view
+    const activeEl = contentRef.current.querySelector<HTMLElement>('[data-active="true"]');
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: 'nearest' });
+      savedSidebarScrollTop = contentRef.current.scrollTop;
+      try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(savedSidebarScrollTop));
+      } catch {}
+    }
+  }, [pathname]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    savedSidebarScrollTop = e.currentTarget.scrollTop;
+    try {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(savedSidebarScrollTop));
+    } catch {}
+  };
 
   const isLinkActive = (url: string) => {
     // If it's an exact match, it's definitely active
@@ -122,7 +168,8 @@ function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent>
+      <SidebarContent ref={contentRef} onScroll={handleScroll}>
+
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2">
             <img src="/app-icon.png" alt="Logo" className="h-5 w-5 rounded-sm object-cover" />
@@ -150,6 +197,72 @@ function AppSidebar() {
                           {pendingCount}
                         </span>
                       )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Procurement Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <Package className="mr-2 h-4 w-4" />
+            {!collapsed && 'Procurement'}
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {procurementItems.map((item) => {
+                const active = isLinkActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={active}
+                      className={active ? "bg-sidebar-accent/50 text-sidebar-accent-foreground" : ""}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className={cn("h-4 w-4", active && "text-primary")} />
+                        <span>{item.title}</span>
+                        {active && (
+                            <div className="absolute left-0 top-[15%] bottom-[15%] w-1 bg-primary rounded-r-md" />
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Sales Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            {!collapsed && 'Sales'}
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {salesItems.map((item) => {
+                const active = isLinkActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={active}
+                      className={active ? "bg-sidebar-accent/50 text-sidebar-accent-foreground" : ""}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className={cn("h-4 w-4", active && "text-primary")} />
+                        <span>{item.title}</span>
+                        {active && (
+                            <div className="absolute left-0 top-[15%] bottom-[15%] w-1 bg-primary rounded-r-md" />
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -250,6 +363,9 @@ function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {/* Bottom breathing room so items don't collide with the taskbar */}
+        <div className="h-12 shrink-0" aria-hidden="true" />
       </SidebarContent>
     </Sidebar>
   );
@@ -266,7 +382,7 @@ const MobileBottomNav = () => {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-background border-t h-16 px-2 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-background/95 backdrop-blur-md border-t h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] px-2 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.08)]">
       {bottomNavItems.map(item => {
         const isActive = pathname === item.url || (item.url !== '/' && pathname.startsWith(item.url));
         return (
@@ -275,11 +391,11 @@ const MobileBottomNav = () => {
             to={item.url} 
             className={cn(
               "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors min-h-[44px] min-w-[44px]",
-              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
-            <span className="text-[10px] font-medium">{item.title}</span>
+            <span className="text-[10px] tracking-tight">{item.title}</span>
           </NavLink>
         );
       })}
@@ -314,13 +430,13 @@ export const Layout = ({ children, noPadding = false }: LayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-[100dvh] w-full bg-background">
+      <div className="flex min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col relative min-w-0">
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-4 shadow-sm">
-            <div className="flex items-center gap-2">
+        <div className="flex flex-1 flex-col relative min-w-0 max-w-full overflow-x-hidden">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur px-3 sm:px-4 shadow-sm w-full max-w-full min-w-0">
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
               <SidebarTrigger className="min-h-[44px] min-w-[44px]" />
-              <h1 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none hidden md:block">{tenant?.name}</h1>
+              <h1 className="text-lg font-semibold truncate max-w-[160px] sm:max-w-none hidden md:block">{tenant?.name}</h1>
             </div>
 
             <div className="flex-1 max-w-md px-4 hidden sm:block">
@@ -347,15 +463,15 @@ export const Layout = ({ children, noPadding = false }: LayoutProps) => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="min-h-[44px] px-2">
+                <Button variant="ghost" size="sm" className="min-h-[44px] px-2 shrink-0">
                   {user?.avatar_path ? (
                     <img 
                       src={`${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/api\/v1\/?$/, '')}/storage/${user.avatar_path}`} 
                       alt="Avatar" 
-                      className="mr-2 h-6 w-6 rounded-full object-cover border border-slate-200"
+                      className="mr-1.5 sm:mr-2 h-6 w-6 rounded-full object-cover border border-slate-200"
                     />
                   ) : (
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-1.5 sm:mr-2 h-4 w-4" />
                   )}
                   <span className="hidden sm:inline">{user?.first_name} {user?.last_name}</span>
                 </Button>
@@ -399,7 +515,7 @@ export const Layout = ({ children, noPadding = false }: LayoutProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className={cn("flex-1", noPadding ? "p-0 pb-16 md:pb-0" : "p-4 pb-24 md:p-6 md:pb-6")}>{children}</main>
+          <main className={cn("flex-1 min-w-0 max-w-full overflow-x-hidden", noPadding ? "p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0" : "p-3 sm:p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6")}>{children}</main>
         </div>
       </div>
       <MobileBottomNav />

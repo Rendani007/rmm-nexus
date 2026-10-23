@@ -285,9 +285,12 @@ export const RegisterPage = () => {
                             Create Business Account
                         </Button>
 
-                        <div className="text-center text-sm">
+                        <div className="text-center text-sm text-muted-foreground pt-2">
                             Already have an account?{' '}
-                            <Link to="/login" className="underline hover:text-primary">
+                            <Link
+                                to="/login"
+                                className="font-semibold text-primary hover:text-primary/80 transition-colors hover:underline underline-offset-4"
+                            >
                                 Sign in here
                             </Link>
                         </div>

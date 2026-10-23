@@ -122,33 +122,92 @@ export const RiskRegisterPage = () => {
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <AlertTriangle className="h-8 w-8 text-amber-500" />
-            ISO 27001 Risk Register
-          </h1>
-          <p className="text-muted-foreground mt-1">Identify, assess, and mitigate information security risks.</p>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 w-full min-w-0">
+          <div className="min-w-0 w-full">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 tracking-tight text-foreground min-w-0">
+              <AlertTriangle className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 shrink-0" />
+              <span className="truncate sm:whitespace-normal">ISO 27001 Risk Register</span>
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1 break-words">Identify, assess, and mitigate information security risks.</p>
+          </div>
+          <Button onClick={() => { setSelectedRisk(null); setDialogOpen(true); }} className="w-full sm:w-auto min-h-[44px] shrink-0">
+            <Plus className="mr-2 h-4 w-4" /> Add Risk Entry
+          </Button>
         </div>
-        <Button onClick={() => { setSelectedRisk(null); setDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Risk Entry
-        </Button>
-      </div>
 
-      <div className="flex items-center gap-4 max-w-sm">
-        <div className="relative flex-1">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search risks..."
-            className="pl-8"
+            className="pl-8 w-full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-3">
+        {loading ? (
+          <div className="py-12 text-center">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+          </div>
+        ) : filteredRisks.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+            {search ? 'No risks matching your search.' : 'No risks identified yet.'}
+          </div>
+        ) : (
+          filteredRisks.map((risk) => (
+            <div key={risk.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getRiskScoreBadge(risk.likelihood, risk.impact)}
+                  <Badge variant={risk.status === 'accepted' ? 'secondary' : 'outline'} className="text-xs uppercase">
+                    {risk.status}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => { setSelectedRisk(risk); setDialogOpen(true); }}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(risk.id)} disabled={deletingId === risk.id}>
+                    {deletingId === risk.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <p className="font-semibold text-base text-foreground leading-snug">
+                {risk.description}
+              </p>
+
+              {risk.mitigation_plan && (
+                <div className="bg-muted/40 p-2.5 rounded-lg border border-border/50 text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">Mitigation: </span>
+                  {risk.mitigation_plan}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs text-muted-foreground">
+                <div>
+                  <span className="text-muted-foreground">Matrix: </span>
+                  <span className="font-medium text-foreground">{risk.likelihood} × {risk.impact}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Owner: </span>
+                  <span className="font-medium text-foreground">{risk.owner ? `${risk.owner.first_name} ${risk.owner.last_name}` : 'Unassigned'}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Next Review: </span>
+                  <span className="font-medium text-foreground">{format(new Date(risk.review_date), 'PPP')}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      <div className="rounded-md border bg-card">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
